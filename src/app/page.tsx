@@ -1,101 +1,98 @@
-import Image from "next/image";
+import Link from 'next/link'
+import { Zap, Check, ArrowRight } from 'lucide-react'
 
-export default function Home() {
+export default function LandingPage() {
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="min-h-screen bg-[#0a0c10] text-gray-100">
+      {/* Nav */}
+      <nav className="flex items-center justify-between px-8 py-5 border-b border-gray-900">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-md bg-green-500 flex items-center justify-center">
+            <Zap className="w-4 h-4 text-gray-950" />
+          </div>
+          <span className="font-bold text-sm">HR<span className="text-green-400">Reply</span>.ai</span>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        <div className="flex items-center gap-4">
+          <Link href="/login" className="text-sm text-gray-400 hover:text-white transition-colors">
+            Sign in
+          </Link>
+          <Link
+            href="/login"
+            className="bg-green-500 text-gray-950 text-sm font-semibold px-4 py-2 rounded-lg hover:bg-green-400 transition-colors"
+          >
+            Get started free
+          </Link>
+        </div>
+      </nav>
+
+      {/* Hero */}
+      <div className="px-8 pt-24 pb-16 max-w-4xl mx-auto text-center">
+        <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/25 rounded-full px-4 py-1.5 text-green-400 text-xs font-mono mb-8">
+          <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+          AI REPLY ASSISTANT FOR INDIAN RECRUITERS
+        </div>
+        <h1 className="text-5xl sm:text-6xl font-extrabold tracking-tight leading-tight mb-5">
+          Stop copy-pasting.<br />
+          <span className="text-green-400">Reply smarter.</span>
+        </h1>
+        <p className="text-lg text-gray-400 max-w-xl mx-auto mb-8 leading-relaxed">
+          Generate perfect HR messages in seconds — Formal English, Friendly English, or Hinglish.
+          Built for Indian recruiters who handle 40–80 candidates a day.
+        </p>
+        <div className="flex items-center justify-center gap-4 flex-wrap">
+          <Link
+            href="/login"
+            className="bg-green-500 text-gray-950 font-bold px-6 py-3 rounded-xl hover:bg-green-400 transition-colors flex items-center gap-2"
+          >
+            Start for free <ArrowRight className="w-4 h-4" />
+          </Link>
+          <Link href="/dashboard" className="text-sm text-gray-400 hover:text-white transition-colors">
+            Try without signing up →
+          </Link>
+        </div>
+      </div>
+
+      {/* Features */}
+      <div className="px-8 py-16 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+          {[
+            {
+              icon: '🤖',
+              title: 'AI Reply Generator',
+              desc: 'Paste candidate context → pick reply type → get the perfect message in one click.',
+            },
+            {
+              icon: '🌐',
+              title: 'Formal / Friendly / Hinglish',
+              desc: 'The same message rewritten in the exact tone you need — including natural Hinglish.',
+            },
+            {
+              icon: '📋',
+              title: '20+ HR Templates',
+              desc: 'Offer, rejection, interview invite, reschedule, follow-up — all India-context aware.',
+            },
+          ].map((f) => (
+            <div key={f.title} className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+              <div className="text-3xl mb-3">{f.icon}</div>
+              <h3 className="font-bold text-sm mb-2">{f.title}</h3>
+              <p className="text-xs text-gray-500 leading-relaxed">{f.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Pricing teaser */}
+      <div className="px-8 py-12 max-w-2xl mx-auto text-center border-t border-gray-900">
+        <h2 className="text-2xl font-bold mb-2">Start free. Upgrade when you need more.</h2>
+        <p className="text-gray-400 text-sm mb-6">50 free replies/month. Pro at ₹799/mo for unlimited.</p>
+        <div className="flex flex-col items-center gap-2 text-sm text-gray-400">
+          {['No credit card required', 'Cancel anytime', 'Works in your browser — no install needed'].map((f) => (
+            <div key={f} className="flex items-center gap-2">
+              <Check className="w-4 h-4 text-green-400" /> {f}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
-  );
+  )
 }
