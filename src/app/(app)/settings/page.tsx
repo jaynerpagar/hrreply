@@ -1,10 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { Settings, User, Bell, CreditCard } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Card, PageHeader } from '@/components/ui/card'
 import { TONE_LABELS } from '@/lib/utils'
 import { Tone } from '@/types'
+import { cn } from '@/lib/utils'
 
 const TONES: Tone[] = ['formal', 'friendly', 'hinglish']
 
@@ -14,80 +16,69 @@ export default function SettingsPage() {
   const [company, setCompany] = useState('')
 
   return (
-    <div className="p-8 max-w-2xl mx-auto">
-      <div className="mb-7">
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <Settings className="w-6 h-6 text-gray-400" /> Settings
-        </h1>
-      </div>
+    <div>
+      <PageHeader
+        title="Settings"
+        description="Manage your profile, preferences, and billing."
+      />
 
-      <div className="space-y-5">
+      <div className="flex flex-col gap-5 max-w-2xl">
         {/* Profile */}
-        <section className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-          <h2 className="flex items-center gap-2 text-sm font-semibold mb-4">
-            <User className="w-4 h-4 text-gray-400" /> Profile
-          </h2>
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs font-mono text-gray-500 uppercase tracking-widest block mb-1.5">Full Name</label>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-green-500/50"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-mono text-gray-500 uppercase tracking-widest block mb-1.5">Company / Consultancy Name</label>
-              <input
-                value={company}
-                onChange={(e) => setCompany(e.target.value)}
-                placeholder="Optional"
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-green-500/50"
-              />
-            </div>
+        <Card>
+          <h2 className="text-base font-semibold text-ink mb-4">Profile</h2>
+          <div className="flex flex-col gap-3">
+            <Input
+              label="Full name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+            <Input
+              label="Company / consultancy name"
+              value={company}
+              onChange={(e) => setCompany(e.target.value)}
+              placeholder="Optional"
+            />
           </div>
-        </section>
+        </Card>
 
         {/* Preferences */}
-        <section className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-          <h2 className="flex items-center gap-2 text-sm font-semibold mb-4">
-            <Bell className="w-4 h-4 text-gray-400" /> Preferences
-          </h2>
+        <Card>
+          <h2 className="text-base font-semibold text-ink mb-4">Preferences</h2>
           <div>
-            <label className="text-xs font-mono text-gray-500 uppercase tracking-widest block mb-2">Default Tone</label>
+            <p className="text-sm font-medium text-ink-secondary mb-2">Default tone</p>
             <div className="flex gap-2">
               {TONES.map((t) => (
                 <button
                   key={t}
                   onClick={() => setTone(t)}
-                  className={`flex-1 py-2 rounded-lg border text-sm transition-colors ${
+                  className={cn(
+                    'flex-1 py-2 rounded border text-sm font-medium transition-colors duration-150',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1',
                     tone === t
-                      ? 'border-green-500/60 bg-green-500/10 text-green-400'
-                      : 'border-gray-700 bg-gray-800 text-gray-400 hover:text-gray-200'
-                  }`}
+                      ? 'border-primary bg-primary-soft text-primary-deep'
+                      : 'border-surface-borderStrong bg-surface-card text-ink-secondary hover:text-ink hover:border-primary'
+                  )}
                 >
                   {TONE_LABELS[t]}
                 </button>
               ))}
             </div>
           </div>
-        </section>
+        </Card>
 
         {/* Billing */}
-        <section className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-          <h2 className="flex items-center gap-2 text-sm font-semibold mb-4">
-            <CreditCard className="w-4 h-4 text-gray-400" /> Billing
-          </h2>
+        <Card>
+          <h2 className="text-base font-semibold text-ink mb-4">Billing</h2>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-semibold">Free Plan</p>
-              <p className="text-xs text-gray-500 mt-0.5">50 replies / month</p>
+              <p className="text-sm font-semibold text-ink">Free plan</p>
+              <p className="text-[13px] text-ink-secondary mt-0.5">50 replies per month</p>
             </div>
-            <Button variant="secondary" size="sm">Manage Billing</Button>
+            <Button variant="secondary" size="sm">Manage billing</Button>
           </div>
-        </section>
+        </Card>
 
-        <Button className="w-full">Save Changes</Button>
+        <Button variant="primary" className="self-start">Save changes</Button>
       </div>
     </div>
   )

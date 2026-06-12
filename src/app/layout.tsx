@@ -1,16 +1,26 @@
 import type { Metadata } from 'next'
+import { Inter } from 'next/font/google'
 import './globals.css'
 
+const inter = Inter({
+  subsets: ['latin'],
+  weight: ['400', '500', '600'],
+  variable: '--font-inter',
+  display: 'swap',
+})
+
 export const metadata: Metadata = {
-  title: 'HRReply.ai — AI Reply Assistant for Indian Recruiters',
+  title: 'HRReply.in — AI reply assistant for Indian recruiters',
   description:
-    'Generate perfect HR replies in seconds. Formal English, Friendly English, or Hinglish — built for Indian recruiters.',
+    'Generate perfect HR messages in seconds. Formal English, friendly English, or Hinglish — built for Indian recruiters.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className="antialiased min-h-screen bg-[#0a0c10] text-gray-100">{children}</body>
+    <html lang="en" className={inter.variable}>
+      <body className="antialiased min-h-screen bg-surface-page text-ink font-sans">
+        {children}
+      </body>
     </html>
   )
 }

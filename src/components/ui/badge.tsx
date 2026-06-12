@@ -1,27 +1,47 @@
 import { cn } from '@/lib/utils'
 
+type BadgeVariant = 'placed' | 'process' | 'dropped' | 'newLead' | 'default'
+
 interface BadgeProps {
   children: React.ReactNode
-  variant?: 'green' | 'blue' | 'orange' | 'red' | 'yellow' | 'muted'
+  variant?: BadgeVariant
   className?: string
 }
 
-export function Badge({ children, variant = 'muted', className }: BadgeProps) {
+const DOT_COLORS: Record<BadgeVariant, string> = {
+  placed: 'bg-status-placed',
+  process: 'bg-status-process',
+  dropped: 'bg-status-dropped',
+  newLead: 'bg-status-newLead',
+  default: 'bg-ink-muted',
+}
+
+const PILL_STYLES: Record<BadgeVariant, string> = {
+  placed: 'bg-status-placedBg text-status-placedText',
+  process: 'bg-status-processBg text-status-processText',
+  dropped: 'bg-status-droppedBg text-status-droppedText',
+  newLead: 'bg-status-newLeadBg text-status-newLeadText',
+  default: 'bg-surface-sunken text-ink-secondary',
+}
+
+export function Badge({ children, variant = 'default', className }: BadgeProps) {
   return (
     <span
       className={cn(
-        'inline-flex items-center font-mono text-[10px] px-2 py-0.5 rounded border tracking-wide',
-        {
-          'bg-green-500/10 text-green-400 border-green-500/25': variant === 'green',
-          'bg-blue-500/10 text-blue-400 border-blue-500/25': variant === 'blue',
-          'bg-orange-500/10 text-orange-400 border-orange-500/25': variant === 'orange',
-          'bg-red-500/10 text-red-400 border-red-500/25': variant === 'red',
-          'bg-yellow-500/10 text-yellow-400 border-yellow-500/25': variant === 'yellow',
-          'bg-gray-800 text-gray-500 border-gray-700': variant === 'muted',
-        },
+        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium',
+        PILL_STYLES[variant],
         className
       )}
     >
+      <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', DOT_COLORS[variant])} />
+      {children}
+    </span>
+  )
+}
+
+export function InfoChip({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <span className={cn('inline-flex items-center rounded px-2 py-0.5 text-xs font-medium bg-primary-soft text-primary-deep', className)}>
       {children}
     </span>
   )
