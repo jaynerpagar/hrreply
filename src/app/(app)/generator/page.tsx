@@ -5,6 +5,7 @@ import { Copy, Check, RefreshCw, Pencil } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/input'
 import { PageHeader } from '@/components/ui/card'
+import { UpsellModal } from '@/components/ui/upsell-modal'
 import { Tone, ReplyType } from '@/types'
 import { TONE_LABELS, REPLY_TYPE_LABELS, cn } from '@/lib/utils'
 
@@ -21,6 +22,7 @@ export default function GeneratorPage() {
   const [copied, setCopied] = useState(false)
   const [editing, setEditing] = useState(false)
   const [error, setError] = useState('')
+  const [showUpsell, setShowUpsell] = useState(false)
 
   // After 3 seconds, transition the AI output background from accent-soft to sunken
   useEffect(() => {
@@ -43,11 +45,11 @@ export default function GeneratorPage() {
       })
       const data = await res.json()
       if (!res.ok) {
-        setError(
-          data.error === 'free_limit_reached'
-            ? 'You have used all 50 free replies this month. Upgrade to Pro for unlimited replies.'
-            : (data.error ?? 'Something went wrong — please try again.')
-        )
+        if (data.error === 'free_limit_reached') {
+          setShowUpsell(true)
+        } else {
+          setError(data.error ?? 'Something went wrong — please try again.')
+        }
         return
       }
       setOutput(data.generated_text)
@@ -67,6 +69,11 @@ export default function GeneratorPage() {
 
   return (
     <div>
+      <UpsellModal
+        open={showUpsell}
+        onClose={() => setShowUpsell(false)}
+        reason="limit_reached"
+      />
       <PageHeader
         title="Reply generator"
         description="Fill in the context on the left — the AI drafts your message on the right."
@@ -133,32 +140,40 @@ export default function GeneratorPage() {
           </div>
 
           {/* Generate button — mobile shows here, desktop shows at top of right pane */}
-          <div className="lg:hidden">
-            <Button
-              variant="ai"
-              size="lg"
-              className="w-full"
-              onClick={generate}
-              disabled={loading || !contextInput.trim()}
-            >
-              {loading ? 'Generating…' : 'Generate reply'}
-            </Button>
+          <div className="lg:hidden flex justify-end">
+            <div className="relative">
+              {!loading && contextInput.trim() && (
+                <span className="absolute inset-0 rounded animate-ping bg-accent opacity-30 pointer-events-none" />
+              )}
+              <Button
+                variant="ai"
+                size="md"
+                onClick={generate}
+                disabled={loading || !contextInput.trim()}
+              >
+                {loading ? 'Generating…' : 'Generate reply'}
+              </Button>
+            </div>
           </div>
         </div>
 
         {/* ── RIGHT PANE: generated output ── */}
         <div className="flex flex-col gap-4">
           {/* Generate button — desktop only */}
-          <div className="hidden lg:block">
-            <Button
-              variant="ai"
-              size="lg"
-              className="w-full"
-              onClick={generate}
-              disabled={loading || !contextInput.trim()}
-            >
-              {loading ? 'Generating…' : 'Generate reply'}
-            </Button>
+          <div className="hidden lg:flex justify-end">
+            <div className="relative">
+              {!loading && contextInput.trim() && (
+                <span className="absolute inset-0 rounded animate-ping bg-accent opacity-30 pointer-events-none" />
+              )}
+              <Button
+                variant="ai"
+                size="md"
+                onClick={generate}
+                disabled={loading || !contextInput.trim()}
+              >
+                {loading ? 'Generating…' : 'Generate reply'}
+              </Button>
+            </div>
           </div>
 
           {error && (

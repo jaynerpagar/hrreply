@@ -1,5 +1,5 @@
 -- HRReply.ai Database Schema
--- Run this in your Supabase SQL Editor
+-- Safe to run multiple times (idempotent)
 
 -- Users table (extends Supabase auth.users)
 CREATE TABLE IF NOT EXISTS public.users (
@@ -14,6 +14,9 @@ CREATE TABLE IF NOT EXISTS public.users (
 );
 
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can read own data" ON public.users;
+DROP POLICY IF EXISTS "Users can update own data" ON public.users;
+DROP POLICY IF EXISTS "Users can insert own data" ON public.users;
 CREATE POLICY "Users can read own data" ON public.users FOR SELECT USING (auth.uid() = id);
 CREATE POLICY "Users can update own data" ON public.users FOR UPDATE USING (auth.uid() = id);
 CREATE POLICY "Users can insert own data" ON public.users FOR INSERT WITH CHECK (auth.uid() = id);
@@ -32,6 +35,7 @@ CREATE TABLE IF NOT EXISTS public.candidates (
 );
 
 ALTER TABLE public.candidates ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users own their candidates" ON public.candidates;
 CREATE POLICY "Users own their candidates" ON public.candidates USING (auth.uid() = user_id);
 
 -- Replies table
@@ -47,6 +51,7 @@ CREATE TABLE IF NOT EXISTS public.replies (
 );
 
 ALTER TABLE public.replies ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users own their replies" ON public.replies;
 CREATE POLICY "Users own their replies" ON public.replies USING (auth.uid() = user_id);
 
 -- Templates table
@@ -62,6 +67,8 @@ CREATE TABLE IF NOT EXISTS public.templates (
 );
 
 ALTER TABLE public.templates ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can read system and own templates" ON public.templates;
+DROP POLICY IF EXISTS "Users can manage own templates" ON public.templates;
 CREATE POLICY "Users can read system and own templates" ON public.templates
   FOR SELECT USING (is_system = true OR auth.uid() = user_id);
 CREATE POLICY "Users can manage own templates" ON public.templates
@@ -79,6 +86,7 @@ CREATE TABLE IF NOT EXISTS public.subscriptions (
 );
 
 ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users own their subscriptions" ON public.subscriptions;
 CREATE POLICY "Users own their subscriptions" ON public.subscriptions USING (auth.uid() = user_id);
 
 -- Function to reset monthly reply count

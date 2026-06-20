@@ -3,10 +3,29 @@ import { Wand2, BookOpen, History, ArrowRight, TrendingUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, PageHeader } from '@/components/ui/card'
 import { FREE_REPLY_LIMIT } from '@/lib/utils'
+import { createClient } from '@/lib/supabase/server'
 
-export default function DashboardPage() {
-  const repliesUsed = 12
-  const plan = 'free'
+export default async function DashboardPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  // Fetch user profile
+  const { data: profile } = await supabase
+    .from('users')
+    .select('replies_used, plan')
+    .eq('id', user?.id ?? '')
+    .single()
+
+  // Fetch replies this week
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+  const { count: weekCount } = await supabase
+    .from('replies')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user?.id ?? '')
+    .gte('created_at', weekAgo)
+
+  const repliesUsed = profile?.replies_used ?? 0
+  const plan = profile?.plan ?? 'free'
   const pct = Math.min((repliesUsed / FREE_REPLY_LIMIT) * 100, 100)
 
   return (
@@ -21,7 +40,7 @@ export default function DashboardPage() {
         }
       />
 
-      {/* Usage card */}
+      {/* Usage card — free plan only */}
       {plan === 'free' && (
         <Card className="mb-5">
           <div className="flex items-center justify-between mb-3">
@@ -92,8 +111,8 @@ export default function DashboardPage() {
       <div className="grid grid-cols-3 gap-4">
         {[
           { label: 'Total replies', value: repliesUsed },
-          { label: 'This week', value: 4 },
-          { label: 'Saved templates', value: 0 },
+          { label: 'This week', value: weekCount ?? 0 },
+          { label: 'Plan', value: plan.charAt(0).toUpperCase() + plan.slice(1) },
         ].map(({ label, value }) => (
           <Card key={label}>
             <p className="text-[28px] font-semibold text-ink leading-none mb-1">{value}</p>
