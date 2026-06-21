@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { Search, Copy, Check, Clock } from 'lucide-react'
-import { PageHeader } from '@/components/ui/card'
 import { InfoChip } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { TONE_LABELS, REPLY_TYPE_LABELS } from '@/lib/utils'
