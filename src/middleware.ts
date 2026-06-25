@@ -26,12 +26,15 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const { pathname } = request.nextUrl
 
+  console.log(`[middleware] ${pathname} — user: ${user?.id ?? 'none'} — cookies: ${request.cookies.getAll().map(c => c.name).join(', ') || 'none'}`)
+
   const isPublic =
     pathname === '/' ||
     pathname === '/login' ||
     pathname.startsWith('/api/')
 
   if (!user && !isPublic) {
+    console.log(`[middleware] no session, redirecting ${pathname} → /login`)
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
