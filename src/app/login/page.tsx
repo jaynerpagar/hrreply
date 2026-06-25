@@ -1,9 +1,22 @@
 'use client'
 
-import { Sparkles } from 'lucide-react'
+import { useState } from 'react'
+import { Sparkles, Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
+
+type Mode = 'signin' | 'signup'
 
 export default function LoginPage() {
+  const router = useRouter()
+  const [mode, setMode] = useState<Mode>('signin')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+
   async function signInWithGoogle() {
     const supabase = createClient()
     await supabase.auth.signInWithOAuth({
@@ -12,18 +25,131 @@ export default function LoginPage() {
     })
   }
 
+  async function handleEmailAuth(e: React.FormEvent) {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+    setSuccess('')
+
+    const supabase = createClient()
+
+    if (mode === 'signup') {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: `${window.location.origin}/api/auth/callback` },
+      })
+      if (error) {
+        setError(error.message)
+      } else {
+        setSuccess('Check your email for a confirmation link.')
+      }
+    } else {
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) {
+        setError(error.message)
+      } else {
+        router.push('/dashboard')
+        router.refresh()
+      }
+    }
+
+    setLoading(false)
+  }
+
   return (
-    <div className="min-h-screen bg-surface-page flex items-center justify-center p-8">
+    <div className="min-h-screen bg-surface-page flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
+        {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-11 h-11 rounded-lg bg-accent mb-4">
             <Sparkles className="w-5 h-5 text-white" />
           </div>
           <h1 className="text-2xl font-semibold text-ink">Welcome to HRReply.in</h1>
-          <p className="text-ink-secondary text-sm mt-1.5">Sign in to start generating smarter HR replies</p>
+          <p className="text-ink-secondary text-sm mt-1.5">AI replies for HR professionals</p>
         </div>
 
         <div className="bg-surface-card border border-surface-border rounded-lg shadow-card p-6">
+          {/* Tabs */}
+          <div className="flex rounded border border-surface-border overflow-hidden mb-5">
+            {(['signin', 'signup'] as Mode[]).map((m) => (
+              <button
+                key={m}
+                onClick={() => { setMode(m); setError(''); setSuccess('') }}
+                className={`flex-1 py-2 text-sm font-medium transition-colors ${
+                  mode === m
+                    ? 'bg-primary text-white'
+                    : 'text-ink-secondary hover:text-ink bg-surface-card'
+                }`}
+              >
+                {m === 'signin' ? 'Sign in' : 'Sign up'}
+              </button>
+            ))}
+          </div>
+
+          {/* Email form */}
+          <form onSubmit={handleEmailAuth} className="flex flex-col gap-3 mb-4">
+            <div>
+              <label className="block text-sm font-medium text-ink-secondary mb-1">Email</label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@company.com"
+                className="w-full border border-surface-borderStrong rounded px-3 py-2 text-sm text-ink placeholder:text-ink-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary bg-surface-card"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-ink-secondary mb-1">Password</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full border border-surface-borderStrong rounded px-3 py-2 pr-10 text-sm text-ink placeholder:text-ink-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary bg-surface-card"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted hover:text-ink"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {error && (
+              <p className="text-sm text-status-droppedText bg-status-droppedBg border border-status-dropped/30 rounded px-3 py-2">
+                {error}
+              </p>
+            )}
+            {success && (
+              <p className="text-sm text-status-placedText bg-status-placedBg border border-status-placed/30 rounded px-3 py-2">
+                {success}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-primary hover:bg-primary-hover text-white font-medium py-2.5 rounded text-sm transition-colors disabled:opacity-60"
+            >
+              {loading ? 'Please wait…' : mode === 'signin' ? 'Sign in' : 'Create account'}
+            </button>
+          </form>
+
+          {/* Divider */}
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex-1 h-px bg-surface-border" />
+            <span className="text-xs text-ink-muted">or</span>
+            <div className="flex-1 h-px bg-surface-border" />
+          </div>
+
+          {/* Google */}
           <button
             onClick={signInWithGoogle}
             className="w-full flex items-center justify-center gap-3 bg-surface-card border border-surface-borderStrong text-ink font-medium py-2.5 px-4 rounded hover:bg-surface-sunken transition-colors text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
@@ -38,7 +164,7 @@ export default function LoginPage() {
           </button>
 
           <p className="text-center text-[13px] text-ink-muted mt-4">
-            By signing up you agree to our terms of service
+            By continuing you agree to our terms of service
           </p>
         </div>
 
