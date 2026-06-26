@@ -11,7 +11,7 @@ const NAV = [
   { href: '/generator', label: 'Reply generator', icon: Wand2 },
   { href: '/templates', label: 'Templates', icon: BookOpen },
   { href: '/history', label: 'Reply history', icon: History },
-  { href: '/candidates', label: 'Candidates', icon: Users, badge: 'V2' },
+  { href: '/candidates', label: 'Candidates', icon: Users },
 ]
 
 const BOTTOM_NAV = [
@@ -24,7 +24,7 @@ function NavLinks({ onClick }: { onClick?: () => void }) {
   return (
     <>
       <nav className="flex-1 px-3 py-4 flex flex-col gap-0.5 overflow-y-auto">
-        {NAV.map(({ href, label, icon: Icon, badge }) => {
+        {NAV.map(({ href, label, icon: Icon }) => {
           const active = pathname === href
           return (
             <Link
@@ -40,12 +40,7 @@ function NavLinks({ onClick }: { onClick?: () => void }) {
             >
               <Icon className="w-4 h-4 shrink-0" />
               <span className="flex-1">{label}</span>
-              {badge && (
-                <span className="font-medium text-[10px] text-blue-300 bg-white/10 px-1.5 py-0.5 rounded">
-                  {badge}
-                </span>
-              )}
-            </Link>
+              </Link>
           )
         })}
       </nav>
