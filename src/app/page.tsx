@@ -20,10 +20,10 @@ export default function LandingPage() {
               Sign in
             </Link>
             <Link
-              href="/login"
+              href="/login?mode=signup"
               className="bg-primary text-ink-inverse text-sm font-medium px-4 py-2 rounded hover:bg-primary-hover transition-colors"
             >
-              Get started free
+              Sign up free
             </Link>
           </div>
         </div>
@@ -43,16 +43,16 @@ export default function LandingPage() {
         </p>
         <div className="flex items-center justify-center gap-3 flex-wrap">
           <Link
-            href="/login"
+            href="/login?mode=signup"
             className="bg-primary text-ink-inverse font-medium px-5 py-2.5 rounded hover:bg-primary-hover transition-colors flex items-center gap-2"
           >
-            Start for free <ArrowRight className="w-4 h-4" />
+            Get started free <ArrowRight className="w-4 h-4" />
           </Link>
           <Link
-            href="/dashboard"
+            href="/login"
             className="text-sm text-ink-secondary hover:text-ink transition-colors border border-surface-borderStrong px-5 py-2.5 rounded hover:bg-surface-sunken"
           >
-            Try without signing up
+            Sign in
           </Link>
         </div>
       </div>

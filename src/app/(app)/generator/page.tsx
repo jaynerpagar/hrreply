@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Copy, Check, RefreshCw, Pencil } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/input'
@@ -12,9 +13,14 @@ import { TONE_LABELS, REPLY_TYPE_LABELS, cn } from '@/lib/utils'
 const TONES: Tone[] = ['formal', 'friendly', 'hinglish']
 const REPLY_TYPES = Object.entries(REPLY_TYPE_LABELS) as [ReplyType, string][]
 
-export default function GeneratorPage() {
-  const [replyType, setReplyType] = useState<ReplyType>('interview_invite')
-  const [tone, setTone] = useState<Tone>('friendly')
+function GeneratorContent() {
+  const searchParams = useSearchParams()
+  const [replyType, setReplyType] = useState<ReplyType>(
+    (searchParams.get('type') as ReplyType) || 'interview_invite'
+  )
+  const [tone, setTone] = useState<Tone>(
+    (searchParams.get('tone') as Tone) || 'friendly'
+  )
   const [contextInput, setContextInput] = useState('')
   const [output, setOutput] = useState('')
   const [outputFresh, setOutputFresh] = useState(false)
@@ -237,5 +243,13 @@ export default function GeneratorPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function GeneratorPage() {
+  return (
+    <Suspense>
+      <GeneratorContent />
+    </Suspense>
   )
 }
