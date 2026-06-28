@@ -6,12 +6,20 @@ CREATE TABLE IF NOT EXISTS public.users (
   id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email text NOT NULL,
   full_name text DEFAULT '',
+  company text DEFAULT '',
+  role text DEFAULT '',
+  phone text DEFAULT '',
   default_tone text DEFAULT 'friendly' CHECK (default_tone IN ('formal', 'friendly', 'hinglish')),
   plan text DEFAULT 'free' CHECK (plan IN ('free', 'pro', 'team')),
   replies_used int DEFAULT 0,
   replies_reset_at timestamptz DEFAULT now(),
   created_at timestamptz DEFAULT now()
 );
+
+-- Migration: add onboarding columns to an existing users table (safe to re-run)
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS company text DEFAULT '';
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS role text DEFAULT '';
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS phone text DEFAULT '';
 
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can read own data" ON public.users;

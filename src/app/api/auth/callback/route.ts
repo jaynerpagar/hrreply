@@ -1,67 +1,74 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import type { EmailOtpType } from '@supabase/supabase-js'
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
+  const tokenHash = searchParams.get('token_hash')
+  const type = searchParams.get('type') as EmailOtpType | null
   const errorParam = searchParams.get('error')
   const errorDescription = searchParams.get('error_description')
 
-  // Log everything for debugging
-  console.log('[auth/callback] origin:', origin)
-  console.log('[auth/callback] code present:', !!code)
-  console.log('[auth/callback] error param:', errorParam)
-  console.log('[auth/callback] error_description:', errorDescription)
-  console.log('[auth/callback] all cookies:', request.cookies.getAll().map(c => c.name))
-
   if (errorParam) {
-    console.error('[auth/callback] OAuth error from provider:', errorParam, errorDescription)
+    console.error('[auth/callback] provider error:', errorParam, errorDescription)
     return NextResponse.redirect(`${origin}/login?error=${errorParam}`)
   }
 
-  if (code) {
-    const response = NextResponse.redirect(`${origin}/dashboard`)
+  const response = NextResponse.redirect(`${origin}/dashboard`)
 
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return request.cookies.getAll()
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              response.cookies.set(name, value, options)
-            })
-          },
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
         },
-      }
-    )
-
-    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
-    console.log('[auth/callback] exchangeCodeForSession error:', error?.message ?? 'none')
-    console.log('[auth/callback] user id:', data?.user?.id ?? 'none')
-
-    if (!error && data.user) {
-      const { error: upsertError } = await supabase.from('users').upsert({
-        id: data.user.id,
-        email: data.user.email,
-        full_name: data.user.user_metadata?.full_name ?? '',
-        default_tone: 'friendly',
-        plan: 'free',
-        replies_used: 0,
-        replies_reset_at: new Date().toISOString(),
-      }, { onConflict: 'id', ignoreDuplicates: true })
-
-      console.log('[auth/callback] upsert error:', upsertError?.message ?? 'none')
-      return response
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, options)
+          })
+        },
+      },
     }
+  )
 
-    console.error('[auth/callback] session exchange failed, redirecting to login')
-    return NextResponse.redirect(`${origin}/login?error=auth_failed&detail=${encodeURIComponent(error?.message ?? 'unknown')}`)
+  // Support both OAuth / PKCE (code) and email confirmation links (token_hash + type)
+  let user = null
+  let authError = null
+
+  if (code) {
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+    user = data?.user ?? null
+    authError = error
+  } else if (tokenHash && type) {
+    const { data, error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash })
+    user = data?.user ?? null
+    authError = error
+  } else {
+    return NextResponse.redirect(`${origin}/login?error=no_code`)
   }
 
-  console.error('[auth/callback] no code in request')
-  return NextResponse.redirect(`${origin}/login?error=no_code`)
+  if (!authError && user) {
+    const meta = user.user_metadata ?? {}
+    const { error: upsertError } = await supabase.from('users').upsert({
+      id: user.id,
+      email: user.email,
+      full_name: meta.full_name ?? meta.name ?? '',
+      company: meta.company ?? '',
+      role: meta.role ?? '',
+      phone: meta.phone ?? '',
+      default_tone: 'friendly',
+      plan: 'free',
+      replies_used: 0,
+      replies_reset_at: new Date().toISOString(),
+    }, { onConflict: 'id', ignoreDuplicates: true })
+
+    if (upsertError) console.error('[auth/callback] upsert error:', upsertError.message)
+    return response
+  }
+
+  console.error('[auth/callback] auth failed:', authError?.message)
+  return NextResponse.redirect(`${origin}/login?error=auth_failed&detail=${encodeURIComponent(authError?.message ?? 'unknown')}`)
 }
