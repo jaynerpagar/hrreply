@@ -13,6 +13,13 @@ export const metadata: Metadata = {
   title: 'HRReply.in — AI reply assistant for Indian recruiters',
   description:
     'Generate perfect HR messages in seconds. Formal English, friendly English, or Hinglish — built for Indian recruiters.',
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico', sizes: 'any' },
+    ],
+    apple: '/favicon.svg',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

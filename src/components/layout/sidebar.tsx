@@ -2,10 +2,12 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import type { User } from '@supabase/supabase-js'
 import { cn } from '@/lib/utils'
 import { Logo } from '@/components/ui/logo'
-import { LayoutDashboard, Wand2, BookOpen, History, Users, Settings, CreditCard, Menu, X } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import { LayoutDashboard, Wand2, BookOpen, History, Users, Settings, CreditCard, Menu, X, LogOut } from 'lucide-react'
 
 const NAV = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -42,7 +44,55 @@ function NavItem({
   )
 }
 
-function NavLinks({ onClick }: { onClick?: () => void }) {
+function UserSection({ user, onNavigate }: { user: User | null; onNavigate?: () => void }) {
+  const router = useRouter()
+  const [loggingOut, setLoggingOut] = useState(false)
+
+  const displayName = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || 'Account'
+  const email = user?.email ?? ''
+  const initials = displayName
+    .split(' ')
+    .slice(0, 2)
+    .map((w: string) => w[0])
+    .join('')
+    .toUpperCase()
+
+  async function handleLogout() {
+    setLoggingOut(true)
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    onNavigate?.()
+    router.push('/login')
+    router.refresh()
+  }
+
+  return (
+    <div className="px-3 py-3 border-t border-white/10">
+      <div className="flex items-center gap-2.5 px-2 py-2 rounded-lg group">
+        {/* Avatar */}
+        <div className="w-7 h-7 rounded-full bg-accent flex items-center justify-center shrink-0">
+          <span className="text-[11px] font-bold text-primary-deep">{initials}</span>
+        </div>
+        {/* Name + email */}
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-semibold text-white truncate leading-tight">{displayName}</p>
+          <p className="text-[11px] text-gray-500 truncate leading-tight">{email}</p>
+        </div>
+        {/* Logout */}
+        <button
+          onClick={handleLogout}
+          disabled={loggingOut}
+          title="Sign out"
+          className="p-1 rounded text-gray-500 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-40 shrink-0"
+        >
+          <LogOut className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function NavLinks({ user, onClick }: { user: User | null; onClick?: () => void }) {
   const pathname = usePathname()
   return (
     <>
@@ -51,16 +101,17 @@ function NavLinks({ onClick }: { onClick?: () => void }) {
           <NavItem key={item.href} {...item} active={pathname === item.href} onClick={onClick} />
         ))}
       </nav>
-      <div className="px-3 py-4 border-t border-white/10 flex flex-col gap-0.5">
+      <div className="px-3 py-3 border-t border-white/10 flex flex-col gap-0.5">
         {BOTTOM_NAV.map((item) => (
           <NavItem key={item.href} {...item} active={pathname === item.href} onClick={onClick} />
         ))}
       </div>
+      <UserSection user={user} onNavigate={onClick} />
     </>
   )
 }
 
-export function Sidebar() {
+export function Sidebar({ user }: { user?: User | null }) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -100,7 +151,7 @@ export function Sidebar() {
             <X className="w-5 h-5" />
           </button>
         </div>
-        <NavLinks onClick={() => setOpen(false)} />
+        <NavLinks user={user ?? null} onClick={() => setOpen(false)} />
       </div>
 
       {/* Desktop sidebar */}
@@ -108,7 +159,7 @@ export function Sidebar() {
         <div className="px-5 py-5 border-b border-white/10">
           <Logo size="sm" theme="dark" />
         </div>
-        <NavLinks />
+        <NavLinks user={user ?? null} />
       </aside>
     </>
   )

@@ -230,7 +230,7 @@ export default function CandidatesClient({ initial }: { initial: Candidate[] }) 
         </div>
         <select
           value={stageFilter} onChange={e => setStageFilter(e.target.value as Stage | 'all')}
-          className="border border-surface-borderStrong rounded px-3 py-2 text-sm text-ink focus:outline-none focus:border-primary bg-surface-card"
+          className="w-auto min-w-[140px] border border-surface-borderStrong rounded px-3 py-2 pr-8 text-sm text-ink focus:outline-none focus:border-primary bg-surface-card"
         >
           {FILTER_STAGES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
         </select>
