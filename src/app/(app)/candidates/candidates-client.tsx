@@ -314,7 +314,7 @@ export default function CandidatesClient({ initial }: { initial: Candidate[] }) 
                         <a
                           href={`/generator?context=${encodeURIComponent(`${c.name}, applying for ${c.role_applied}.`)}`}
                           title="Generate reply"
-                          className="p-1.5 rounded text-ink-muted hover:text-accent hover:bg-accent-soft transition-colors"
+                          className="p-1.5 rounded text-ink-muted hover:text-accent-text hover:bg-accent-soft transition-colors"
                         >
                           <Wand2 className="w-3.5 h-3.5" />
                         </a>

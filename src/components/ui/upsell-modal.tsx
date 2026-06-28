@@ -58,8 +58,8 @@ export function UpsellModal({ open, onClose, repliesUsed = 0, reason = 'limit_re
 
         {/* Icon + heading */}
         <div className="flex items-start gap-3 mb-4">
-          <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
-            <Sparkles className="w-5 h-5 text-accent" />
+          <div className="w-10 h-10 rounded-lg bg-accent-soft flex items-center justify-center shrink-0">
+            <Sparkles className="w-5 h-5 text-accent-icon" />
           </div>
           <div>
             <h2 className="text-lg font-semibold text-ink">

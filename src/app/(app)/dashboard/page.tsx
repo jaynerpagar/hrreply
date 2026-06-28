@@ -77,7 +77,7 @@ export default async function DashboardPage() {
             label: 'Reply generator',
             desc: 'Draft the perfect candidate message in seconds',
             icon: Wand2,
-            iconClass: 'text-accent',
+            iconClass: 'text-accent-icon',
           },
           {
             href: '/templates',

@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, Suspense } from 'react'
-import { Sparkles, Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff } from 'lucide-react'
+import { LogoMark } from '@/components/ui/logo'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -62,11 +63,9 @@ function LoginForm() {
     <div className="min-h-screen bg-surface-page flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-11 h-11 rounded-lg bg-accent mb-4">
-            <Sparkles className="w-5 h-5 text-white" />
-          </div>
-          <h1 className="text-2xl font-semibold text-ink">Welcome to HRReply.in</h1>
+        <div className="flex flex-col items-center text-center mb-8">
+          <LogoMark size={48} className="mb-4" />
+          <h1 className="text-2xl font-extrabold tracking-tight text-ink">Welcome to HRReply.in</h1>
           <p className="text-ink-secondary text-sm mt-1.5">AI replies for HR professionals</p>
         </div>
 

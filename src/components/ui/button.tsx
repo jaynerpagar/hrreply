@@ -20,7 +20,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           'disabled:opacity-50 disabled:cursor-not-allowed',
           {
             'bg-primary text-ink-inverse hover:bg-primary-hover': variant === 'primary',
-            'bg-accent text-white hover:bg-accent-hover': variant === 'ai',
+            'bg-accent text-ink hover:bg-accent-hover': variant === 'ai',
             'bg-surface-card border border-surface-borderStrong text-ink hover:bg-surface-sunken': variant === 'secondary',
             'text-primary hover:bg-primary-faint': variant === 'ghost',
             'bg-status-dropped text-white hover:opacity-90': variant === 'danger',

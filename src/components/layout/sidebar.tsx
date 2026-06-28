@@ -4,7 +4,8 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, Wand2, BookOpen, History, Users, Settings, CreditCard, Sparkles, Menu, X } from 'lucide-react'
+import { Logo } from '@/components/ui/logo'
+import { LayoutDashboard, Wand2, BookOpen, History, Users, Settings, CreditCard, Menu, X } from 'lucide-react'
 
 const NAV = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -19,66 +20,43 @@ const BOTTOM_NAV = [
   { href: '/settings', label: 'Settings', icon: Settings },
 ]
 
+function NavItem({
+  href, label, icon: Icon, active, onClick,
+}: {
+  href: string; label: string; icon: typeof LayoutDashboard; active: boolean; onClick?: () => void
+}) {
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      className={cn(
+        'group flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors duration-150',
+        active
+          ? 'bg-white/10 text-white font-medium'
+          : 'text-gray-400 hover:text-white hover:bg-white/5'
+      )}
+    >
+      <Icon className={cn('w-4 h-4 shrink-0 transition-colors', active ? 'text-accent' : 'text-gray-500 group-hover:text-gray-300')} />
+      <span className="flex-1">{label}</span>
+    </Link>
+  )
+}
+
 function NavLinks({ onClick }: { onClick?: () => void }) {
   const pathname = usePathname()
   return (
     <>
       <nav className="flex-1 px-3 py-4 flex flex-col gap-0.5 overflow-y-auto">
-        {NAV.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href
-          return (
-            <Link
-              key={href}
-              href={href}
-              onClick={onClick}
-              className={cn(
-                'flex items-center gap-2.5 px-3 py-2 rounded text-sm transition-colors duration-150',
-                active
-                  ? 'bg-primary text-white'
-                  : 'text-blue-200 hover:text-white hover:bg-white/10'
-              )}
-            >
-              <Icon className="w-4 h-4 shrink-0" />
-              <span className="flex-1">{label}</span>
-              </Link>
-          )
-        })}
+        {NAV.map((item) => (
+          <NavItem key={item.href} {...item} active={pathname === item.href} onClick={onClick} />
+        ))}
       </nav>
       <div className="px-3 py-4 border-t border-white/10 flex flex-col gap-0.5">
-        {BOTTOM_NAV.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href
-          return (
-            <Link
-              key={href}
-              href={href}
-              onClick={onClick}
-              className={cn(
-                'flex items-center gap-2.5 px-3 py-2 rounded text-sm transition-colors duration-150',
-                active
-                  ? 'bg-primary text-white'
-                  : 'text-blue-200 hover:text-white hover:bg-white/10'
-              )}
-            >
-              <Icon className="w-4 h-4 shrink-0" />
-              {label}
-            </Link>
-          )
-        })}
+        {BOTTOM_NAV.map((item) => (
+          <NavItem key={item.href} {...item} active={pathname === item.href} onClick={onClick} />
+        ))}
       </div>
     </>
-  )
-}
-
-function Logo() {
-  return (
-    <div className="flex items-center gap-2">
-      <div className="w-7 h-7 rounded bg-accent flex items-center justify-center">
-        <Sparkles className="w-4 h-4 text-white" />
-      </div>
-      <span className="font-semibold text-sm text-ink-inverse tracking-tight">
-        HRReply<span className="text-blue-300">.in</span>
-      </span>
-    </div>
   )
 }
 
@@ -89,10 +67,10 @@ export function Sidebar() {
     <>
       {/* Mobile top header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-primary-deep flex items-center justify-between px-4 h-14 border-b border-white/10">
-        <Logo />
+        <Logo size="sm" theme="dark" />
         <button
           onClick={() => setOpen(true)}
-          className="text-blue-200 hover:text-white p-1"
+          className="text-gray-400 hover:text-white p-1"
           aria-label="Open menu"
         >
           <Menu className="w-5 h-5" />
@@ -102,7 +80,7 @@ export function Sidebar() {
       {/* Mobile drawer backdrop */}
       {open && (
         <div
-          className="lg:hidden fixed inset-0 z-40 bg-ink/40"
+          className="lg:hidden fixed inset-0 z-40 bg-ink/50 backdrop-blur-sm"
           onClick={() => setOpen(false)}
         />
       )}
@@ -113,10 +91,10 @@ export function Sidebar() {
         open ? 'translate-x-0' : '-translate-x-full'
       )}>
         <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
-          <Logo />
+          <Logo size="sm" theme="dark" />
           <button
             onClick={() => setOpen(false)}
-            className="text-blue-200 hover:text-white p-1"
+            className="text-gray-400 hover:text-white p-1"
             aria-label="Close menu"
           >
             <X className="w-5 h-5" />
@@ -127,8 +105,8 @@ export function Sidebar() {
 
       {/* Desktop sidebar */}
       <aside className="hidden lg:flex w-56 shrink-0 flex-col bg-primary-deep h-screen sticky top-0">
-        <div className="px-5 py-4 border-b border-white/10">
-          <Logo />
+        <div className="px-5 py-5 border-b border-white/10">
+          <Logo size="sm" theme="dark" />
         </div>
         <NavLinks />
       </aside>

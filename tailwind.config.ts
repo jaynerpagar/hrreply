@@ -9,31 +9,34 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Charcoal — structural: sidebar, primary buttons, headings
         primary: {
-          DEFAULT: '#1D4ED8',
-          hover: '#1E40AF',
-          deep: '#1E3A8A',
-          soft: '#DBEAFE',
-          faint: '#EFF6FF',
+          DEFAULT: '#1F2937', // gray-800 (brand mark bg)
+          hover: '#111827',   // gray-900
+          deep: '#111827',    // gray-900 (sidebar)
+          soft: '#F3F4F6',    // gray-100 (selected/soft bg)
+          faint: '#F9FAFB',   // gray-50 (ghost hover)
         },
+        // Lime — the signal/AI accent (the "message delivered" tick)
         accent: {
-          DEFAULT: '#F59E0B',
-          hover: '#D97706',
-          soft: '#FEF3C7',
-          text: '#78350F',
+          DEFAULT: '#A3E635', // lime-400 — fills, ticks, pulse (use with DARK text)
+          hover: '#84CC16',   // lime-500 — button hover
+          soft: '#ECFCCB',    // lime-100 — soft bg
+          text: '#3F6212',    // lime-800 — text on light/soft bg
+          icon: '#65A30D',    // lime-600 — icon/accent foreground on white
         },
         surface: {
-          page: '#F8FAFC',
+          page: '#F9FAFB',         // gray-50
           card: '#FFFFFF',
-          sunken: '#F1F5F9',
-          border: '#E2E8F0',
-          borderStrong: '#CBD5E1',
+          sunken: '#F3F4F6',       // gray-100
+          border: '#E5E7EB',       // gray-200
+          borderStrong: '#D1D5DB', // gray-300
         },
         ink: {
-          DEFAULT: '#0F172A',
-          secondary: '#475569',
-          muted: '#94A3B8',
-          inverse: '#F8FAFC',
+          DEFAULT: '#111827',   // gray-900
+          secondary: '#4B5563', // gray-600 (the "Reply" wordmark tone)
+          muted: '#9CA3AF',     // gray-400
+          inverse: '#F9FAFB',
         },
         status: {
           placed: '#16A34A',
@@ -45,21 +48,21 @@ const config: Config = {
           dropped: '#DC2626',
           droppedBg: '#FEE2E2',
           droppedText: '#7F1D1D',
-          newLead: '#1D4ED8',
-          newLeadBg: '#DBEAFE',
-          newLeadText: '#1E3A8A',
+          newLead: '#1F2937',
+          newLeadBg: '#F3F4F6',
+          newLeadText: '#111827',
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-manrope)', 'Manrope', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
         DEFAULT: '8px',
         lg: '12px',
       },
       boxShadow: {
-        card: '0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.08)',
-        raised: '0 4px 12px rgba(15, 23, 42, 0.10)',
+        card: '0 1px 2px rgba(17, 24, 39, 0.06), 0 1px 3px rgba(17, 24, 39, 0.08)',
+        raised: '0 4px 12px rgba(17, 24, 39, 0.10)',
       },
     },
   },
