@@ -1,0 +1,180 @@
+'use client'
+
+import { useState } from 'react'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Card, PageHeader } from '@/components/ui/card'
+import { TONE_LABELS } from '@/lib/utils'
+import { Tone } from '@/types'
+import { cn } from '@/lib/utils'
+
+const TONES: Tone[] = ['formal', 'friendly', 'hinglish']
+
+interface Subscription {
+  plan: string
+  status: string
+  seats: number
+  current_period_end: string | null
+}
+
+interface Props {
+  initialName: string
+  initialCompany: string
+  initialTone: Tone
+  plan: string
+  subscription: Subscription | null
+}
+
+function formatDate(iso: string | null) {
+  if (!iso) return null
+  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+export default function SettingsClient({ initialName, initialCompany, initialTone, plan, subscription }: Props) {
+  const [tone, setTone] = useState<Tone>(initialTone)
+  const [name, setName] = useState(initialName)
+  const [company, setCompany] = useState(initialCompany)
+  const [cancelling, setCancelling] = useState(false)
+  const [cancelDone, setCancelDone] = useState(subscription?.status === 'cancelled')
+  const [cancelError, setCancelError] = useState('')
+
+  const renewDate = formatDate(subscription?.current_period_end ?? null)
+  const isPaid = plan !== 'free'
+  const isTeam = plan === 'team'
+
+  async function handleCancel() {
+    if (!confirm('Cancel your subscription? You\'ll keep access until the current billing period ends.')) return
+    setCancelling(true)
+    setCancelError('')
+    const res = await fetch('/api/razorpay/cancel-subscription', { method: 'POST' })
+    if (res.ok) {
+      setCancelDone(true)
+    } else {
+      const data = await res.json()
+      setCancelError(data.error ?? 'Failed to cancel subscription')
+    }
+    setCancelling(false)
+  }
+
+  return (
+    <div>
+      <PageHeader
+        title="Settings"
+        description="Manage your profile, preferences, and billing."
+      />
+
+      <div className="flex flex-col gap-5 max-w-2xl">
+        {/* Profile */}
+        <Card>
+          <h2 className="text-base font-semibold text-ink mb-4">Profile</h2>
+          <div className="flex flex-col gap-3">
+            <Input
+              label="Full name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+            <Input
+              label="Company / consultancy name"
+              value={company}
+              onChange={(e) => setCompany(e.target.value)}
+              placeholder="Optional"
+            />
+          </div>
+        </Card>
+
+        {/* Preferences */}
+        <Card>
+          <h2 className="text-base font-semibold text-ink mb-4">Preferences</h2>
+          <div>
+            <p className="text-sm font-medium text-ink-secondary mb-2">Default tone</p>
+            <div className="flex gap-2">
+              {TONES.map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setTone(t)}
+                  className={cn(
+                    'flex-1 py-2 rounded border text-sm font-medium transition-colors duration-150',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1',
+                    tone === t
+                      ? 'border-primary bg-primary-soft text-primary-deep'
+                      : 'border-surface-borderStrong bg-surface-card text-ink-secondary hover:text-ink hover:border-primary'
+                  )}
+                >
+                  {TONE_LABELS[t]}
+                </button>
+              ))}
+            </div>
+          </div>
+        </Card>
+
+        {/* Billing */}
+        <Card>
+          <h2 className="text-base font-semibold text-ink mb-4">Billing</h2>
+
+          {!isPaid ? (
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-ink">Free plan</p>
+                <p className="text-[13px] text-ink-secondary mt-0.5">50 replies per month</p>
+              </div>
+              <Link href="/upgrade">
+                <Button variant="primary" size="sm">Upgrade to Pro</Button>
+              </Link>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-ink capitalize">
+                    {plan} plan
+                    {isTeam && subscription?.seats && (
+                      <span className="font-normal text-ink-secondary"> · {subscription.seats} seats</span>
+                    )}
+                  </p>
+                  {cancelDone ? (
+                    <p className="text-[13px] text-status-processText mt-0.5">
+                      Cancelled · Access until {renewDate ?? 'end of billing period'}
+                    </p>
+                  ) : (
+                    <p className="text-[13px] text-ink-secondary mt-0.5">
+                      {renewDate ? `Renews ${renewDate}` : 'Active subscription'}
+                    </p>
+                  )}
+                </div>
+                <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-status-placedBg text-status-placedText">
+                  Active
+                </span>
+              </div>
+
+              {cancelError && (
+                <p className="text-sm text-status-droppedText bg-status-droppedBg rounded px-3 py-2">
+                  {cancelError}
+                </p>
+              )}
+
+              {!cancelDone && (
+                <div className="border-t border-surface-border pt-4">
+                  <p className="text-[13px] text-ink-secondary mb-3">
+                    Cancelling will keep your plan active until {renewDate ?? 'the end of your billing period'}, then revert to Free.
+                  </p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleCancel}
+                    disabled={cancelling}
+                    className="text-status-droppedText hover:bg-status-droppedBg hover:text-status-droppedText"
+                  >
+                    {cancelling ? 'Cancelling…' : 'Cancel subscription'}
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+        </Card>
+
+        <Button variant="primary" className="self-start">Save changes</Button>
+      </div>
+    </div>
+  )
+}

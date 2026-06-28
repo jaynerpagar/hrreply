@@ -4,8 +4,15 @@ import { Button } from '@/components/ui/button'
 import { Card, PageHeader } from '@/components/ui/card'
 import { FREE_REPLY_LIMIT } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/server'
+import UpgradeBanner from '@/components/ui/upgrade-banner'
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ upgraded?: string }>
+}) {
+  const params = await searchParams
+  const justUpgraded = params.upgraded === 'true'
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -30,6 +37,7 @@ export default async function DashboardPage() {
 
   return (
     <div>
+      <UpgradeBanner show={justUpgraded} />
       <PageHeader
         title="Dashboard"
         description="Your reply activity at a glance."

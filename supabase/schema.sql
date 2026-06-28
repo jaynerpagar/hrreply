@@ -21,6 +21,9 @@ ALTER TABLE public.users ADD COLUMN IF NOT EXISTS company text DEFAULT '';
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS role text DEFAULT '';
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS phone text DEFAULT '';
 
+-- Migration: add seats column to subscriptions table (safe to re-run)
+ALTER TABLE public.subscriptions ADD COLUMN IF NOT EXISTS seats int DEFAULT 1;
+
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can read own data" ON public.users;
 DROP POLICY IF EXISTS "Users can update own data" ON public.users;
