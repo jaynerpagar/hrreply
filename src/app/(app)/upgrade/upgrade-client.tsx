@@ -101,6 +101,7 @@ export default function UpgradeClient({ userPlan, userName, userEmail }: Props) 
   const router = useRouter()
   const [teamSeats, setTeamSeats] = useState(3)
   const [loadingPlan, setLoadingPlan] = useState<Plan | null>(null)
+  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null)
   const [error, setError] = useState('')
 
   async function handleCheckout(planId: 'pro' | 'team') {
@@ -185,16 +186,23 @@ export default function UpgradeClient({ userPlan, userName, userEmail }: Props) 
           const isTeam = plan.id === 'team'
           const isLoading = loadingPlan === plan.id
 
+          const isSelected = selectedPlan === plan.id || (selectedPlan === null && plan.featured && userPlan === 'free')
+
           return (
             <div
               key={plan.name}
-              className={`bg-surface-card rounded-lg shadow-card p-6 flex flex-col gap-4 border-2 ${
-                plan.featured ? 'border-primary' : 'border-surface-border'
+              className={`bg-surface-card rounded-lg shadow-card p-6 flex flex-col gap-4 border-2 transition-colors ${
+                isSelected ? 'border-primary' : 'border-surface-border'
               }`}
             >
               {plan.featured && (
                 <span className="inline-flex self-start items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-primary-soft text-primary-deep">
                   Most popular
+                </span>
+              )}
+              {isSelected && plan.id !== 'free' && !plan.featured && (
+                <span className="inline-flex self-start items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-primary-soft text-primary-deep">
+                  Selected
                 </span>
               )}
 
@@ -248,10 +256,14 @@ export default function UpgradeClient({ userPlan, userName, userEmail }: Props) 
               )}
 
               <Button
-                variant={plan.featured ? 'primary' : 'secondary'}
+                variant={isSelected && plan.id !== 'free' ? 'primary' : plan.featured ? 'primary' : 'secondary'}
                 className="w-full mt-2"
                 disabled={btn.disabled || isLoading}
-                onClick={() => !btn.disabled && plan.id !== 'free' && handleCheckout(plan.id as 'pro' | 'team')}
+                onClick={() => {
+                  if (btn.disabled || plan.id === 'free') return
+                  setSelectedPlan(plan.id)
+                  handleCheckout(plan.id as 'pro' | 'team')
+                }}
               >
                 {isLoading ? 'Opening checkout…' : btn.label}
               </Button>
