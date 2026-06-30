@@ -107,44 +107,57 @@ export default function UpgradeClient({ userPlan, userName, userEmail }: Props) 
     setError('')
     setLoadingPlan(planId)
 
-    const ok = await loadScript()
-    if (!ok) {
-      setError('Failed to load payment gateway. Please try again.')
+    try {
+      const ok = await loadScript()
+      if (!ok) {
+        setError('Failed to load Razorpay. Check your internet connection.')
+        setLoadingPlan(null)
+        return
+      }
+
+      const seats = planId === 'team' ? teamSeats : 1
+      const res = await fetch('/api/razorpay/create-subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: planId, seats }),
+      })
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(data.error ?? 'Something went wrong. Please try again.')
+        setLoadingPlan(null)
+        return
+      }
+
+      const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID
+      if (!razorpayKey) {
+        setError('Payment gateway not configured. Please contact support.')
+        setLoadingPlan(null)
+        return
+      }
+
+      const planLabel = planId === 'pro' ? 'Pro Plan' : `Team Plan (${seats} seats)`
+      const rzp = new window.Razorpay({
+        key: razorpayKey,
+        subscription_id: data.subscription_id,
+        name: 'HRReply.in',
+        description: planLabel,
+        image: '/favicon.svg',
+        prefill: { name: userName, email: userEmail },
+        theme: { color: '#1F2937' },
+        handler: () => {
+          router.push('/dashboard?upgraded=true')
+        },
+        modal: {
+          ondismiss: () => setLoadingPlan(null),
+        },
+      })
+      rzp.open()
+    } catch (err: unknown) {
+      console.error('[checkout]', err)
+      setError(err instanceof Error ? err.message : 'Unexpected error. Please try again.')
       setLoadingPlan(null)
-      return
     }
-
-    const seats = planId === 'team' ? teamSeats : 1
-    const res = await fetch('/api/razorpay/create-subscription', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ plan: planId, seats }),
-    })
-    const data = await res.json()
-
-    if (!res.ok) {
-      setError(data.error ?? 'Something went wrong')
-      setLoadingPlan(null)
-      return
-    }
-
-    const planLabel = planId === 'pro' ? 'Pro Plan' : `Team Plan (${seats} seats)`
-    const rzp = new window.Razorpay({
-      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ?? '',
-      subscription_id: data.subscription_id,
-      name: 'HRReply.in',
-      description: planLabel,
-      image: '/favicon.svg',
-      prefill: { name: userName, email: userEmail },
-      theme: { color: '#1F2937' },
-      handler: () => {
-        router.push('/dashboard?upgraded=true')
-      },
-      modal: {
-        ondismiss: () => setLoadingPlan(null),
-      },
-    })
-    rzp.open()
   }
 
   function getButtonState(planId: Plan) {
