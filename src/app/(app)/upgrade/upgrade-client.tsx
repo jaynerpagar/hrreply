@@ -137,7 +137,9 @@ export default function UpgradeClient({ userPlan, userName, userEmail }: Props) 
         return
       }
 
-      const planLabel = planId === 'pro' ? 'Pro Plan' : `Team Plan (${seats} seats)`
+      const planLabel = planId === 'pro'
+        ? 'Pro Plan — Unlimited AI replies'
+        : `Team Plan — ${seats} seats`
       const rzp = new window.Razorpay({
         key: razorpayKey,
         subscription_id: data.subscription_id,
@@ -145,7 +147,7 @@ export default function UpgradeClient({ userPlan, userName, userEmail }: Props) 
         description: planLabel,
         image: '/favicon.svg',
         prefill: { name: userName, email: userEmail },
-        theme: { color: '#1F2937' },
+        theme: { color: '#65A30D' },
         handler: () => {
           router.push('/dashboard?upgraded=true')
         },
