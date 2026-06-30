@@ -31,6 +31,8 @@ export async function middleware(request: NextRequest) {
     pathname === '/' ||
     pathname === '/login' ||
     pathname === '/reset-password' ||
+    pathname === '/robots.txt' ||
+    pathname === '/sitemap.xml' ||
     pathname.startsWith('/api/')
 
   if (!user && !isPublic) {
