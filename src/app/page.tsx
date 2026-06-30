@@ -299,6 +299,7 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <Logo size="sm" theme="dark" />
           <div className="flex items-center gap-6 text-sm text-gray-500">
+            <Link href="/guides" className="hover:text-gray-300 transition-colors">Guides</Link>
             <Link href="/login?mode=signup" className="hover:text-gray-300 transition-colors">Sign up</Link>
             <Link href="/login" className="hover:text-gray-300 transition-colors">Sign in</Link>
             <span>© 2026 HRReply.in</span>
