@@ -35,6 +35,9 @@ export default function SettingsClient({ initialName, initialCompany, initialTon
   const [tone, setTone] = useState<Tone>(initialTone)
   const [name, setName] = useState(initialName)
   const [company, setCompany] = useState(initialCompany)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const [cancelling, setCancelling] = useState(false)
   const [cancelDone, setCancelDone] = useState(subscription?.status === 'cancelled')
   const [cancelError, setCancelError] = useState('')
@@ -42,6 +45,25 @@ export default function SettingsClient({ initialName, initialCompany, initialTon
   const renewDate = formatDate(subscription?.current_period_end ?? null)
   const isPaid = plan !== 'free'
   const isTeam = plan === 'team'
+
+  async function handleSave() {
+    setSaving(true)
+    setSaveError('')
+    setSaved(false)
+    const res = await fetch('/api/user/profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ full_name: name, company, default_tone: tone }),
+    })
+    if (res.ok) {
+      setSaved(true)
+      setTimeout(() => setSaved(false), 3000)
+    } else {
+      const data = await res.json()
+      setSaveError(data.error ?? 'Failed to save')
+    }
+    setSaving(false)
+  }
 
   async function handleCancel() {
     if (!confirm('Cancel your subscription? You\'ll keep access until the current billing period ends.')) return
@@ -173,7 +195,12 @@ export default function SettingsClient({ initialName, initialCompany, initialTon
           )}
         </Card>
 
-        <Button variant="primary" className="self-start">Save changes</Button>
+        {saveError && (
+          <p className="text-sm text-status-droppedText bg-status-droppedBg rounded px-3 py-2">{saveError}</p>
+        )}
+        <Button variant="primary" className="self-start" onClick={handleSave} disabled={saving}>
+          {saving ? 'Saving…' : saved ? 'Saved!' : 'Save changes'}
+        </Button>
       </div>
     </div>
   )

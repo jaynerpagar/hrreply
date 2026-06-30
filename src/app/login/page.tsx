@@ -6,7 +6,7 @@ import { LogoMark } from '@/components/ui/logo'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 
-type Mode = 'signin' | 'signup'
+type Mode = 'signin' | 'signup' | 'forgot'
 
 const ROLES = [
   'HR Manager',
@@ -38,11 +38,9 @@ function LoginForm() {
   const searchParams = useSearchParams()
   const [mode, setMode] = useState<Mode>(searchParams.get('mode') === 'signup' ? 'signup' : 'signin')
 
-  // Auth
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  // Onboarding (signup only)
   const [fullName, setFullName] = useState('')
   const [company, setCompany] = useState('')
   const [role, setRole] = useState('')
@@ -62,6 +60,19 @@ function LoginForm() {
       provider: 'google',
       options: { redirectTo: `${window.location.origin}/api/auth/callback` },
     })
+  }
+
+  async function handleForgotPassword(e: React.FormEvent) {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    const supabase = createClient()
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/api/auth/callback?type=recovery`,
+    })
+    if (error) setError(error.message)
+    else setEmailSent(true)
+    setLoading(false)
   }
 
   async function handleEmailAuth(e: React.FormEvent) {
@@ -111,21 +122,26 @@ function LoginForm() {
     setLoading(false)
   }
 
-  // ── Email-sent confirmation screen ──
+  // ── Email sent screen (signup verification or forgot password) ──
   if (emailSent) {
+    const isForgot = mode === 'forgot'
     return (
       <div className="min-h-screen bg-surface-page flex items-center justify-center p-4">
         <div className="w-full max-w-sm text-center">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-accent-soft mb-5">
             <MailCheck className="w-7 h-7 text-accent-text" />
           </div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-ink mb-2">Verify your email</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight text-ink mb-2">
+            {isForgot ? 'Check your inbox' : 'Verify your email'}
+          </h1>
           <p className="text-ink-secondary text-sm leading-relaxed mb-1">
-            We sent a confirmation link to
+            {isForgot ? 'We sent a password reset link to' : 'We sent a confirmation link to'}
           </p>
           <p className="text-ink font-semibold text-sm mb-5">{email}</p>
           <p className="text-ink-muted text-[13px] leading-relaxed mb-6">
-            Click the link in that email to activate your account. Check your spam folder if you don&apos;t see it within a minute.
+            {isForgot
+              ? 'Click the link in that email to reset your password. Check your spam folder if you don\'t see it.'
+              : 'Click the link in that email to activate your account. Check your spam folder if you don\'t see it within a minute.'}
           </p>
           <button
             onClick={() => switchMode('signin')}
@@ -138,12 +154,59 @@ function LoginForm() {
     )
   }
 
+  // ── Forgot password mode ──
+  if (mode === 'forgot') {
+    return (
+      <div className="min-h-screen bg-surface-page flex items-center justify-center p-4 py-10">
+        <div className="w-full max-w-sm">
+          <div className="flex flex-col items-center text-center mb-8">
+            <LogoMark size={48} className="mb-4" />
+            <h1 className="text-2xl font-extrabold tracking-tight text-ink">Reset your password</h1>
+            <p className="text-ink-secondary text-sm mt-1.5">Enter your email and we'll send a reset link.</p>
+          </div>
+
+          <div className="bg-surface-card border border-surface-border rounded-xl shadow-card p-6">
+            <form onSubmit={handleForgotPassword} className="flex flex-col gap-3">
+              <Field label="Email">
+                <input
+                  type="email" required value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="you@company.com" className={inputClass}
+                />
+              </Field>
+
+              {error && (
+                <p className="text-sm text-status-droppedText bg-status-droppedBg border border-status-dropped/30 rounded-lg px-3 py-2">
+                  {error}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-primary hover:bg-primary-hover text-white font-semibold py-2.5 rounded-lg text-sm transition-colors disabled:opacity-60 mt-1"
+              >
+                {loading ? 'Sending…' : 'Send reset link'}
+              </button>
+            </form>
+
+            <button
+              onClick={() => switchMode('signin')}
+              className="w-full text-center text-sm text-ink-muted hover:text-ink mt-4 transition-colors"
+            >
+              ← Back to sign in
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   const isSignup = mode === 'signup'
 
   return (
     <div className="min-h-screen bg-surface-page flex items-center justify-center p-4 py-10">
       <div className="w-full max-w-sm">
-        {/* Logo */}
         <div className="flex flex-col items-center text-center mb-8">
           <LogoMark size={48} className="mb-4" />
           <h1 className="text-2xl font-extrabold tracking-tight text-ink">Welcome to HRReply.in</h1>
@@ -213,7 +276,19 @@ function LoginForm() {
               />
             </Field>
 
-            <Field label="Password">
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium text-ink-secondary">Password</label>
+                {!isSignup && (
+                  <button
+                    type="button"
+                    onClick={() => switchMode('forgot')}
+                    className="text-xs text-ink-muted hover:text-primary transition-colors"
+                  >
+                    Forgot password?
+                  </button>
+                )}
+              </div>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -230,7 +305,7 @@ function LoginForm() {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-            </Field>
+            </div>
 
             {error && (
               <p className="text-sm text-status-droppedText bg-status-droppedBg border border-status-dropped/30 rounded-lg px-3 py-2">
@@ -247,14 +322,12 @@ function LoginForm() {
             </button>
           </form>
 
-          {/* Divider */}
           <div className="flex items-center gap-3 mb-4">
             <div className="flex-1 h-px bg-surface-border" />
             <span className="text-xs text-ink-muted">or</span>
             <div className="flex-1 h-px bg-surface-border" />
           </div>
 
-          {/* Google */}
           <button
             onClick={signInWithGoogle}
             className="w-full flex items-center justify-center gap-3 bg-surface-card border border-surface-borderStrong text-ink font-medium py-2.5 px-4 rounded-lg hover:bg-surface-sunken transition-colors text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"

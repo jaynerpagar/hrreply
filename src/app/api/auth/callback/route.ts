@@ -51,6 +51,11 @@ export async function GET(request: NextRequest) {
   }
 
   if (!authError && user) {
+    // Recovery flow → send to password reset page, skip DB upsert
+    if (type === 'recovery') {
+      return NextResponse.redirect(`${origin}/reset-password`)
+    }
+
     const meta = user.user_metadata ?? {}
     const { error: upsertError } = await supabase.from('users').upsert({
       id: user.id,
