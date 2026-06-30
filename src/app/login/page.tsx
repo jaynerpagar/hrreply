@@ -140,8 +140,8 @@ function LoginForm() {
           <p className="text-ink font-semibold text-sm mb-5">{email}</p>
           <p className="text-ink-muted text-[13px] leading-relaxed mb-6">
             {isForgot
-              ? 'Click the link in that email to reset your password. Check your spam folder if you don\'t see it.'
-              : 'Click the link in that email to activate your account. Check your spam folder if you don\'t see it within a minute.'}
+              ? "Click the link in that email to reset your password. Check your spam folder if you don't see it."
+              : "Click the link in that email to activate your account. Check your spam folder if you don't see it within a minute."}
           </p>
           <button
             onClick={() => switchMode('signin')}
@@ -162,7 +162,7 @@ function LoginForm() {
           <div className="flex flex-col items-center text-center mb-8">
             <LogoMark size={48} className="mb-4" />
             <h1 className="text-2xl font-extrabold tracking-tight text-ink">Reset your password</h1>
-            <p className="text-ink-secondary text-sm mt-1.5">Enter your email and we'll send a reset link.</p>
+            <p className="text-ink-secondary text-sm mt-1.5">Enter your email and we&apos;ll send a reset link.</p>
           </div>
 
           <div className="bg-surface-card border border-surface-border rounded-xl shadow-card p-6">

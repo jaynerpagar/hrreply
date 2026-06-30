@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { razorpay } from '@/lib/razorpay'
+import { getRazorpay } from '@/lib/razorpay'
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const subscription = await razorpay.subscriptions.create({
+    const subscription = await getRazorpay().subscriptions.create({
       plan_id: planId,
       total_count: 120,
       quantity: plan === 'team' ? seats : 1,
