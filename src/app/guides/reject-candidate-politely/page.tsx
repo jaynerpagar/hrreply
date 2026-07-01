@@ -39,7 +39,7 @@ export default function RejectCandidatePage() {
       </div>
 
       <div className="bg-accent-soft border border-accent/20 rounded-xl p-5 mb-8 text-sm text-ink-secondary">
-        <strong className="text-ink">Quick tip:</strong> Always reject within 3–5 days of the final decision. Candidates appreciate a clear "no" over silence — it helps them move on and leaves a positive impression of your company.
+        <strong className="text-ink">Quick tip:</strong> Always reject within 3–5 days of the final decision. Candidates appreciate a clear &ldquo;no&rdquo; over silence — it helps them move on and leaves a positive impression of your company.
       </div>
 
       <h2 className="text-xl font-bold text-ink mt-8 mb-4">After Resume Screening (Not Shortlisted)</h2>
