@@ -103,6 +103,73 @@ function welcomeHtml(name: string) {
 </html>`
 }
 
+export async function sendLowReplyWarning(email: string, name: string, used: number, limit: number) {
+  if (!process.env.RESEND_API_KEY) return
+
+  const displayName = name?.trim() ? name.split(' ')[0] : 'there'
+  const remaining = limit - used
+
+  await getResend().emails.send({
+    from: FROM,
+    to: email,
+    subject: `You've used ${used} of ${limit} free replies this month`,
+    html: `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8" /><title>Running low on replies</title></head>
+<body style="margin:0;padding:0;background:#F3F4F6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 16px;">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #E5E7EB;">
+        <tr>
+          <td style="background:#1F2937;padding:28px 40px;">
+            <span style="color:#ffffff;font-size:20px;font-weight:700;">HRReply.in</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:36px 40px 28px;">
+            <p style="margin:0 0 6px;font-size:22px;font-weight:700;color:#111827;">
+              Only ${remaining} ${remaining === 1 ? 'reply' : 'replies'} left, ${displayName}
+            </p>
+            <p style="margin:0 0 24px;font-size:15px;color:#6B7280;line-height:1.6;">
+              You&apos;ve used <strong style="color:#111827;">${used} of ${limit}</strong> free replies this month.
+              Upgrade to Pro for unlimited replies and never hit a limit again.
+            </p>
+
+            <div style="background:#F9FAFB;border-radius:8px;padding:16px 20px;margin-bottom:24px;border:1px solid #E5E7EB;">
+              <div style="background:#E5E7EB;border-radius:999px;height:8px;margin-bottom:8px;">
+                <div style="background:#A3E635;border-radius:999px;height:8px;width:${Math.round((used / limit) * 100)}%;"></div>
+              </div>
+              <p style="margin:0;font-size:13px;color:#6B7280;">${used} / ${limit} replies used this month</p>
+            </div>
+
+            <table cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="background:#1F2937;border-radius:8px;">
+                  <a href="https://www.hrreply.in/upgrade" style="display:inline-block;padding:13px 26px;color:#A3E635;font-size:14px;font-weight:600;text-decoration:none;">
+                    Upgrade to Pro — ₹799/mo →
+                  </a>
+                </td>
+              </tr>
+            </table>
+
+            <p style="margin:20px 0 0;font-size:13px;color:#9CA3AF;">
+              Pro gives you unlimited replies, candidate tracker, custom templates, and full reply history.
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:16px 40px;border-top:1px solid #F3F4F6;">
+            <p style="margin:0;font-size:12px;color:#9CA3AF;">© 2026 HRReply.in</p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`,
+  })
+}
+
 export async function sendWelcomeEmail(email: string, name: string) {
   if (!process.env.RESEND_API_KEY) return
 

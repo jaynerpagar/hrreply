@@ -3,7 +3,10 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { buildPrompt } from '@/lib/prompts'
 import { FREE_REPLY_LIMIT } from '@/lib/utils'
+import { sendLowReplyWarning } from '@/lib/email'
 import { Tone, ReplyType } from '@/types'
+
+const FREE_REPLY_WARNING = 20 // send warning email when user hits this count
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -32,11 +35,25 @@ export async function POST(request: NextRequest) {
   // Check usage limits for free plan
   const { data: profile } = await supabase
     .from('users')
-    .select('plan, replies_used, replies_reset_at')
+    .select('plan, replies_used, replies_reset_at, email, full_name')
     .eq('id', user.id)
     .single()
 
-  if (profile?.plan === 'free' && (profile?.replies_used ?? 0) >= FREE_REPLY_LIMIT) {
+  // Reset counter if 30 days have passed since last reset
+  let repliesUsed = profile?.replies_used ?? 0
+  if (profile?.plan === 'free' && profile?.replies_reset_at) {
+    const resetAt = new Date(profile.replies_reset_at)
+    const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000
+    if (Date.now() - resetAt.getTime() >= thirtyDaysMs) {
+      await supabase
+        .from('users')
+        .update({ replies_used: 0, replies_reset_at: new Date().toISOString() })
+        .eq('id', user.id)
+      repliesUsed = 0
+    }
+  }
+
+  if (profile?.plan === 'free' && repliesUsed >= FREE_REPLY_LIMIT) {
     return NextResponse.json({ error: 'free_limit_reached' }, { status: 403 })
   }
 
@@ -69,10 +86,21 @@ export async function POST(request: NextRequest) {
   }
 
   // Increment usage counter
+  const newCount = repliesUsed + 1
   await supabase
     .from('users')
-    .update({ replies_used: (profile?.replies_used ?? 0) + 1 })
+    .update({ replies_used: newCount })
     .eq('id', user.id)
+
+  // Send low-reply warning email exactly when threshold is crossed
+  if (profile?.plan === 'free' && newCount === FREE_REPLY_WARNING && user.email) {
+    sendLowReplyWarning(
+      user.email,
+      profile?.full_name ?? '',
+      newCount,
+      FREE_REPLY_LIMIT,
+    ).catch((err) => console.error('[generate] warning email failed:', err))
+  }
 
   return NextResponse.json({ generated_text, reply_id: reply?.id })
 }
