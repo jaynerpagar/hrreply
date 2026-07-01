@@ -1,8 +1,10 @@
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
-
 const FROM = 'HRReply.in <hello@hrreply.in>'
+
+function getResend() {
+  return new Resend(process.env.RESEND_API_KEY ?? '')
+}
 
 function welcomeHtml(name: string) {
   const displayName = name?.trim() ? name.split(' ')[0] : 'there'
@@ -104,7 +106,7 @@ function welcomeHtml(name: string) {
 export async function sendWelcomeEmail(email: string, name: string) {
   if (!process.env.RESEND_API_KEY) return
 
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM,
     to: email,
     subject: 'Welcome to HRReply.in — your first 25 replies are ready',
