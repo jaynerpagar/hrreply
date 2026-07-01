@@ -48,9 +48,9 @@ const PLANS = [
     name: 'Free',
     price: '₹0',
     period: '/mo',
-    desc: '50 AI replies per month. Resets every 30 days. No credit card needed.',
+    desc: '25 AI replies per month. Resets every 30 days. No credit card needed.',
     features: [
-      { label: '50 replies per month', ok: true },
+      { label: '25 replies per month', ok: true },
       { label: 'All 20+ base templates', ok: true },
       { label: 'English + Hinglish tones', ok: true },
       { label: 'Reply history (30 days)', ok: true },

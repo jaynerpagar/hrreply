@@ -5,7 +5,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export const FREE_REPLY_LIMIT = 50
+export const FREE_REPLY_LIMIT = 25
 
 export const TONE_LABELS = {
   formal: 'Formal English',

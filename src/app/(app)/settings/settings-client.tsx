@@ -138,7 +138,7 @@ export default function SettingsClient({ initialName, initialCompany, initialTon
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-semibold text-ink">Free plan</p>
-                <p className="text-[13px] text-ink-secondary mt-0.5">50 replies per month</p>
+                <p className="text-[13px] text-ink-secondary mt-0.5">25 replies per month</p>
               </div>
               <Link href="/upgrade">
                 <Button variant="primary" size="sm">Upgrade to Pro</Button>

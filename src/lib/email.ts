@@ -42,7 +42,7 @@ function welcomeHtml(name: string) {
                 Welcome, ${displayName}! 🎉
               </p>
               <p style="margin:0 0 24px;font-size:15px;color:#6B7280;line-height:1.6;">
-                Your account is ready. You have <strong style="color:#111827;">50 free AI replies</strong> every month — no credit card needed.
+                Your account is ready. You have <strong style="color:#111827;">25 free AI replies</strong> every month — no credit card needed.
               </p>
 
               <!-- What you can do -->
@@ -107,7 +107,7 @@ export async function sendWelcomeEmail(email: string, name: string) {
   await resend.emails.send({
     from: FROM,
     to: email,
-    subject: 'Welcome to HRReply.in — your first 50 replies are ready',
+    subject: 'Welcome to HRReply.in — your first 25 replies are ready',
     html: welcomeHtml(name),
   })
 }

@@ -347,7 +347,7 @@ function LoginForm() {
         </div>
 
         <p className="text-center text-[13px] text-ink-muted mt-5">
-          50 free replies/month · No credit card needed
+          25 free replies/month · No credit card needed
         </p>
       </div>
     </div>

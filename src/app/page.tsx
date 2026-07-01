@@ -57,8 +57,8 @@ const PLANS = [
   {
     name: 'Free',
     price: '₹0',
-    desc: '50 replies per month. No credit card.',
-    features: ['50 AI replies/month', 'All 20+ templates', 'Formal + Hinglish tones', 'Reply history (30 days)'],
+    desc: '25 replies per month. No credit card.',
+    features: ['25 AI replies/month', 'All 20+ templates', 'Formal + Hinglish tones', 'Reply history (30 days)'],
     cta: 'Get started free',
     href: '/login?mode=signup',
     featured: false,
@@ -141,7 +141,7 @@ export default function LandingPage() {
               </Link>
             </div>
 
-            <p className="text-gray-500 text-[13px]">50 free replies/month · No credit card · Cancel anytime</p>
+            <p className="text-gray-500 text-[13px]">25 free replies/month · No credit card · Cancel anytime</p>
           </div>
         </div>
 
@@ -283,7 +283,7 @@ export default function LandingPage() {
             Start writing better HR messages today
           </h2>
           <p className="text-gray-400 mb-8">
-            50 free replies every month. No credit card required.
+            25 free replies every month. No credit card required.
           </p>
           <Link
             href="/login?mode=signup"

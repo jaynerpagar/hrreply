@@ -210,7 +210,7 @@ Lekin ye "goodbye" nahi hai. Jab bhi right opening aaye, hum aapse zaroor contac
           href="/login?mode=signup"
           className="inline-flex items-center gap-2 bg-accent text-primary-deep font-semibold px-6 py-3 rounded-lg hover:bg-accent-hover transition-colors text-sm"
         >
-          Try free — 50 replies/month <ArrowRight className="w-4 h-4" />
+          Try free — 25 replies/month <ArrowRight className="w-4 h-4" />
         </Link>
       </div>
     </article>

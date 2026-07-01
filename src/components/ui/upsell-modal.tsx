@@ -63,7 +63,7 @@ export function UpsellModal({ open, onClose, repliesUsed = 0, reason = 'limit_re
           </div>
           <div>
             <h2 className="text-lg font-semibold text-ink">
-              {reason === 'limit_reached' ? 'You\'ve used all 50 free replies' : 'Running low on replies'}
+              {reason === 'limit_reached' ? 'You\'ve used all 25 free replies' : 'Running low on replies'}
             </h2>
             <p className="text-sm text-ink-secondary mt-0.5">
               {reason === 'limit_reached'
