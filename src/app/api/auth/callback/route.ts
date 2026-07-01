@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import type { EmailOtpType } from '@supabase/supabase-js'
+import { sendWelcomeEmail } from '@/lib/email'
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
@@ -57,10 +58,21 @@ export async function GET(request: NextRequest) {
     }
 
     const meta = user.user_metadata ?? {}
+    const fullName = meta.full_name ?? meta.name ?? ''
+
+    // Check if this is a new user before upsert
+    const { data: existing } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    const isNewUser = !existing
+
     const { error: upsertError } = await supabase.from('users').upsert({
       id: user.id,
       email: user.email,
-      full_name: meta.full_name ?? meta.name ?? '',
+      full_name: fullName,
       company: meta.company ?? '',
       role: meta.role ?? '',
       phone: meta.phone ?? '',
@@ -71,6 +83,13 @@ export async function GET(request: NextRequest) {
     }, { onConflict: 'id', ignoreDuplicates: true })
 
     if (upsertError) console.error('[auth/callback] upsert error:', upsertError.message)
+
+    if (isNewUser && user.email) {
+      sendWelcomeEmail(user.email, fullName).catch((err) =>
+        console.error('[auth/callback] welcome email failed:', err)
+      )
+    }
+
     return response
   }
 
