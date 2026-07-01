@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import { Manrope } from 'next/font/google'
+import { Suspense } from 'react'
+import { PostHogProvider } from '@/components/providers/posthog-provider'
 import './globals.css'
 
 const manrope = Manrope({
@@ -40,7 +42,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={manrope.variable}>
       <body className="antialiased min-h-screen bg-surface-page text-ink font-sans">
-        {children}
+        <Suspense>
+          <PostHogProvider>{children}</PostHogProvider>
+        </Suspense>
       </body>
     </html>
   )
