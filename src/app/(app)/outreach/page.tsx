@@ -8,6 +8,7 @@ import {
   Mail, MessageCircle, Link2, ScrollText, Users, Wand2, X,
 } from 'lucide-react'
 import { UpsellModal } from '@/components/ui/upsell-modal'
+import { AnalyzeBar } from '@/components/analyze'
 import { cn } from '@/lib/utils'
 import type { CandidateProfile, JobProfile, CompanySnapshot, OutreachMessages } from '@/types'
 
@@ -748,7 +749,7 @@ function OutreachContent() {
               </div>
 
               {/* Actions */}
-              <div className="px-5 py-3 border-t border-surface-border flex items-center gap-2 bg-white">
+              <div className="px-5 py-3 border-t border-surface-border flex items-center gap-2 bg-white flex-wrap">
                 <button
                   onClick={copy}
                   className={cn(
@@ -760,6 +761,11 @@ function OutreachContent() {
                 >
                   {copied ? <><Check className="w-3.5 h-3.5" />Copied!</> : <><Copy className="w-3.5 h-3.5" />Copy</>}
                 </button>
+                <AnalyzeBar
+                  text={outreach[activeTab]}
+                  channel={activeTab === 'whatsapp' ? 'whatsapp' : 'email'}
+                  onApplyText={(t) => setOutreach(prev => prev ? { ...prev, [activeTab]: t } : prev)}
+                />
                 <button
                   onClick={generate}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary bg-primary text-xs font-semibold text-white hover:bg-primary-hover transition-all ml-auto"

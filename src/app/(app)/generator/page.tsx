@@ -7,6 +7,7 @@ import {
   Smartphone, Link2, Hash, LayoutGrid, Sparkles, Wand2, CornerDownLeft, Trash2,
 } from 'lucide-react'
 import { UpsellModal } from '@/components/ui/upsell-modal'
+import { AnalyzeBar } from '@/components/analyze'
 import { Tone, ReplyType, MessageFormat, RewriteStyle, SubjectLine } from '@/types'
 import { FORMAT_LABELS, REWRITE_LABELS, cn } from '@/lib/utils'
 
@@ -629,7 +630,7 @@ function GeneratorContent() {
               </div>
 
               {/* Actions */}
-              <div className="px-5 py-3 border-t border-surface-border flex items-center gap-2 bg-white">
+              <div className="px-5 py-3 border-t border-surface-border flex items-center gap-2 bg-white flex-wrap">
                 <button
                   onClick={copy}
                   className={cn(
@@ -647,6 +648,7 @@ function GeneratorContent() {
                 >
                   <Pencil className="w-3.5 h-3.5" /> Edit
                 </button>
+                <AnalyzeBar text={output} channel={format} onApplyText={setOutput} />
                 {mode === 'compose' ? (
                   <button
                     onClick={generate}

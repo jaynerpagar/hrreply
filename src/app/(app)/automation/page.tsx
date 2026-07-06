@@ -7,6 +7,7 @@ import {
   Smartphone, Link2, BellRing, Heart, Gift, CalendarCheck, Users,
 } from 'lucide-react'
 import { UpsellModal } from '@/components/ui/upsell-modal'
+import { AnalyzeBar } from '@/components/analyze'
 import { cn } from '@/lib/utils'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -122,17 +123,20 @@ function MessageCard({ label, sublabel, message, accent = false }: {
           <span className={cn('text-xs font-bold', accent ? 'text-accent-text' : 'text-ink')}>{label}</span>
           {sublabel && <span className="text-[11px] text-ink-muted ml-2">{sublabel}</span>}
         </div>
-        <button
-          onClick={copy}
-          className={cn(
-            'flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg border transition-all',
-            copied
-              ? 'border-accent bg-accent-soft text-accent-text'
-              : 'border-surface-border bg-white text-ink-secondary hover:border-primary hover:text-primary'
-          )}
-        >
-          {copied ? <><Check className="w-3 h-3" />Copied</> : <><Copy className="w-3 h-3" />Copy</>}
-        </button>
+        <div className="flex items-center gap-2">
+          <AnalyzeBar text={message} channel="whatsapp" />
+          <button
+            onClick={copy}
+            className={cn(
+              'flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg border transition-all',
+              copied
+                ? 'border-accent bg-accent-soft text-accent-text'
+                : 'border-surface-border bg-white text-ink-secondary hover:border-primary hover:text-primary'
+            )}
+          >
+            {copied ? <><Check className="w-3 h-3" />Copied</> : <><Copy className="w-3 h-3" />Copy</>}
+          </button>
+        </div>
       </div>
       <div className="px-4 py-4 bg-white">
         <p className="text-sm text-ink leading-[1.8] whitespace-pre-wrap">{message}</p>

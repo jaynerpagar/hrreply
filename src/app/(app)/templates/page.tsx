@@ -6,6 +6,7 @@ import {
   Mail, MessageSquare, BookOpen, ChevronDown, ChevronUp,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { AnalyzeBar } from '@/components/analyze'
 import {
   HR_TEMPLATES, CATEGORY_META, CATEGORY_ORDER,
   extractPlaceholders, fillTemplate,
@@ -164,10 +165,13 @@ function UseModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-surface-border bg-surface-sunken">
-          <p className="text-xs text-ink-muted">
-            {Object.values(values).filter(Boolean).length}/{placeholders.length} placeholders filled
-          </p>
+        <div className="flex items-center justify-between px-6 py-4 border-t border-surface-border bg-surface-sunken gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            <p className="text-xs text-ink-muted">
+              {Object.values(values).filter(Boolean).length}/{placeholders.length} placeholders filled
+            </p>
+            <AnalyzeBar text={filledBody} channel={template.channel} />
+          </div>
           <button
             onClick={copyAll}
             className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
