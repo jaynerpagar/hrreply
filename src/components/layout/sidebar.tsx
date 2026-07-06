@@ -7,11 +7,12 @@ import type { User } from '@supabase/supabase-js'
 import { cn } from '@/lib/utils'
 import { Logo } from '@/components/ui/logo'
 import { createClient } from '@/lib/supabase/client'
-import { LayoutDashboard, Wand2, BookOpen, History, Users, Settings, CreditCard, Menu, X, LogOut } from 'lucide-react'
+import { LayoutDashboard, Wand2, BookOpen, History, Users, Settings, CreditCard, Menu, X, LogOut, Bot } from 'lucide-react'
 
 const NAV = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/generator', label: 'Reply generator', icon: Wand2 },
+  { href: '/copilot', label: 'HR Copilot', icon: Bot },
   { href: '/templates', label: 'Templates', icon: BookOpen },
   { href: '/history', label: 'Reply history', icon: History },
   { href: '/candidates', label: 'Candidates', icon: Users },
