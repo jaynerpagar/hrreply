@@ -43,6 +43,14 @@ Return this exact JSON structure:
     "urgency": number 0-100,
     "verdict": "send_ready" | "could_improve" | "needs_revision",
     "verdict_reason": "one sentence"
+  },
+  "response_rate": {
+    "predicted_pct": number 0-100,
+    "confidence": "low" | "medium" | "high",
+    "factors": [
+      { "label": "factor name", "impact": "positive" | "negative" | "neutral", "note": "brief explanation" }
+    ],
+    "improvement": "one actionable suggestion to increase response likelihood, or empty string if already strong"
   }
 }
 
@@ -52,7 +60,8 @@ Guidelines:
 - Inclusive language: Chairman→Chairperson, Manpower→Workforce, Mankind→Humankind, Blacklist→Blocklist, Whitelist→Allowlist, Master/Slave→Primary/Secondary, Salesman→Sales Representative, He-or-She binary→They, Guys→Team, Stewardess→Flight Attendant.
 - Readability: consider sentence length, jargon, passive voice, complexity. Indian HR context.
 - Professional: rate 4 dimensions honestly. urgency = appropriate deadline/motivation awareness.
-- If corrected_text or rewritten_text has no changes, return the original text unchanged.`
+- If corrected_text or rewritten_text has no changes, return the original text unchanged.
+- response_rate: Estimate likelihood the candidate will respond (0-100). Base on: clear CTA, personalization, appropriate length, tone match for channel, urgency, clarity. This is an AI estimate — label it as such mentally. List 3-5 factors that most influenced the score.`
 
 export async function POST(req: Request) {
   const supabase = await createClient()

@@ -46,12 +46,26 @@ interface ProfessionalResult {
   verdict_reason: string
 }
 
+interface ResponseRateFactor {
+  label: string
+  impact: 'positive' | 'negative' | 'neutral'
+  note: string
+}
+
+interface ResponseRateResult {
+  predicted_pct: number
+  confidence: 'low' | 'medium' | 'high'
+  factors: ResponseRateFactor[]
+  improvement: string
+}
+
 interface AnalysisResult {
   grammar: GrammarResult
   compliance: ComplianceResult
   inclusive: InclusiveResult
   readability: ReadabilityResult
   professional: ProfessionalResult
+  response_rate: ResponseRateResult
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -265,6 +279,56 @@ function ReadabilitySection({ data }: { data: ReadabilityResult }) {
   )
 }
 
+function ResponseRateSection({ data }: { data: ResponseRateResult }) {
+  const pct = data.predicted_pct
+  const color = pct >= 70 ? '#22c55e' : pct >= 45 ? '#f59e0b' : '#ef4444'
+  const label = pct >= 70 ? 'Likely to respond' : pct >= 45 ? 'May respond' : 'Low likelihood'
+  const IMPACT_ICON = { positive: '✅', negative: '❌', neutral: '➖' }
+  const badge = (
+    <span className="flex items-center gap-1">
+      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-700">🤖 AI Estimate</span>
+      <span className="text-[10px] font-bold" style={{ color }}>{pct}%</span>
+    </span>
+  )
+
+  return (
+    <Section icon="📬" title="Response Likelihood" badge={badge}>
+      <div className="p-4 flex flex-col gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-14 h-14 rounded-full border-4 flex items-center justify-center shrink-0 flex-col"
+            style={{ borderColor: color }}>
+            <span className="text-base font-bold leading-none" style={{ color }}>{pct}%</span>
+          </div>
+          <div>
+            <p className="font-semibold text-ink text-sm">{label}</p>
+            <p className="text-[10px] text-purple-600 mt-0.5 font-medium">🤖 AI prediction · not measured data</p>
+            <p className="text-[10px] text-ink-muted mt-0.5">Confidence: {data.confidence}</p>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-ink-muted">Key factors</p>
+          {data.factors.map((f, i) => (
+            <div key={i} className="flex items-start gap-2 text-xs">
+              <span className="shrink-0 mt-px">{IMPACT_ICON[f.impact]}</span>
+              <div>
+                <span className="font-medium text-ink">{f.label}</span>
+                <span className="text-ink-muted"> — {f.note}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {data.improvement && (
+          <div className="bg-purple-50 border border-purple-100 rounded-lg p-3 text-xs text-purple-800">
+            <span className="font-semibold">💡 Improve: </span>{data.improvement}
+          </div>
+        )}
+      </div>
+    </Section>
+  )
+}
+
 function ProfessionalSection({ data }: { data: ProfessionalResult }) {
   const vStyle = VERDICT_STYLE[data.verdict] ?? VERDICT_STYLE.could_improve
   const badge = <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full', vStyle.cls)}>{vStyle.label}</span>
@@ -390,11 +454,12 @@ function AnalyzePanel({
 
           {result && !loading && (
             <>
-              <GrammarSection    data={result.grammar}    onApply={onApplyText} />
-              <ComplianceSection data={result.compliance} />
-              <InclusiveSection  data={result.inclusive}  onApply={onApplyText} />
-              <ReadabilitySection data={result.readability} />
+              <GrammarSection      data={result.grammar}       onApply={onApplyText} />
+              <ComplianceSection   data={result.compliance} />
+              <InclusiveSection    data={result.inclusive}     onApply={onApplyText} />
+              <ReadabilitySection  data={result.readability} />
               <ProfessionalSection data={result.professional} />
+              {result.response_rate && <ResponseRateSection data={result.response_rate} />}
             </>
           )}
         </div>

@@ -191,6 +191,7 @@ function GeneratorContent() {
   // Shared output state
   const [output, setOutput] = useState('')
   const [outputFresh, setOutputFresh] = useState(false)
+  const [replyId, setReplyId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [rewriteLoading, setRewriteLoading] = useState<RewriteStyle | null>(null)
   const [copied, setCopied] = useState(false)
@@ -244,7 +245,7 @@ function GeneratorContent() {
         else setError(data.error ?? 'Something went wrong — please try again.')
         return
       }
-      setOutput(data.generated_text); setOutputFresh(true)
+      setOutput(data.generated_text); setOutputFresh(true); setReplyId(data.reply_id ?? null)
     } catch { setError('Network error — please check your connection.') }
     finally { setLoading(false) }
   }
@@ -323,6 +324,7 @@ function GeneratorContent() {
   function copy() {
     navigator.clipboard.writeText(output)
     setCopied(true); setTimeout(() => setCopied(false), 2000)
+    if (replyId) fetch('/api/track-copy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ replyId }) })
   }
 
   function copySubject(idx: number, subject: string) {

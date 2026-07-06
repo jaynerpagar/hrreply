@@ -93,6 +93,10 @@ function UseModal({
   const copyAll = () => {
     const text = filledSubject ? `Subject: ${filledSubject}\n\n${filledBody}` : filledBody
     copy(text, 'all')
+    // Track template usage for analytics
+    if ('category' in template) {
+      fetch('/api/track-template-use', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ templateId: template.id }) })
+    }
   }
 
   return (
