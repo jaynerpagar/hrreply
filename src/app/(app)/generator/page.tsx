@@ -1,23 +1,21 @@
 'use client'
 
-import { useState, useEffect, useRef, Suspense } from 'react'
+import { useState, useEffect, Suspense, ReactNode } from 'react'
 import { useSearchParams } from 'next/navigation'
 import {
   Copy, Check, RefreshCw, Pencil, Mail, MessageCircle,
   Smartphone, Link2, Hash, LayoutGrid, Sparkles, Wand2,
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/input'
 import { UpsellModal } from '@/components/ui/upsell-modal'
 import { Tone, ReplyType, MessageFormat, RewriteStyle, SubjectLine } from '@/types'
-import { REPLY_TYPE_LABELS, FORMAT_LABELS, REWRITE_LABELS, cn } from '@/lib/utils'
+import { FORMAT_LABELS, REWRITE_LABELS, cn } from '@/lib/utils'
 
 const TONES: { value: Tone; label: string; desc: string }[] = [
   { value: 'formal',   label: 'Formal',   desc: 'Professional & corporate' },
   { value: 'friendly', label: 'Friendly', desc: 'Warm & approachable' },
 ]
 
-const FORMATS: { value: MessageFormat; icon: React.ReactNode; label: string }[] = [
+const FORMATS: { value: MessageFormat; icon: ReactNode; label: string }[] = [
   { value: 'email',    icon: <Mail className="w-4 h-4" />,          label: 'Email' },
   { value: 'whatsapp', icon: <MessageCircle className="w-4 h-4" />, label: 'WhatsApp' },
   { value: 'sms',      icon: <Smartphone className="w-4 h-4" />,    label: 'SMS' },
@@ -49,14 +47,84 @@ const REWRITE_STYLES: RewriteStyle[] = [
   'stronger', 'softer', 'simple', 'corporate', 'startup',
 ]
 
-const FORMAT_PLACEHOLDERS: Record<MessageFormat, string> = {
-  email:    'e.g. Priya Sharma, Senior HR Manager role at Bangalore office. Round 1 interview with Rahul (Team Lead) on 22nd Jan, 11:30am via Google Meet. CTC range 12–15 LPA.',
-  whatsapp: 'e.g. Rahul rejected for frontend role. Keep it warm and brief — we want to stay in touch for future openings.',
-  sms:      'e.g. Remind Ananya — interview tomorrow 2pm, Google Meet link sent to her email.',
-  linkedin: 'e.g. Vikram shortlisted for Product Manager. First round is with the team lead this week.',
-  slack:    'e.g. Remind the team: Seema joins Monday as Design Lead. First day onboarding 10am.',
-  teams:    'e.g. Collecting documents from Arjun before joining next week. Need Aadhaar and last payslip.',
+// ── Structured fields ──────────────────────────────────────────────────────
+
+type FieldId =
+  | 'candidateName' | 'role' | 'round' | 'date' | 'time' | 'platform'
+  | 'interviewer' | 'ctc' | 'joiningDate' | 'location' | 'documents'
+  | 'manager' | 'department' | 'lastWorkingDay'
+
+interface FieldDef {
+  label: string
+  placeholder: string
+  wide?: boolean
 }
+
+const FIELD_DEFS: Record<FieldId, FieldDef> = {
+  candidateName:  { label: 'Candidate name',    placeholder: 'e.g. Priya Sharma' },
+  role:           { label: 'Role / Position',   placeholder: 'e.g. Senior HR Manager' },
+  round:          { label: 'Interview round',   placeholder: 'e.g. Round 1, Technical' },
+  date:           { label: 'Date',              placeholder: 'e.g. 22nd January' },
+  time:           { label: 'Time',              placeholder: 'e.g. 11:30 AM' },
+  platform:       { label: 'Platform / Venue',  placeholder: 'e.g. Google Meet, Bangalore office' },
+  interviewer:    { label: 'Interviewer name',  placeholder: 'e.g. Rahul (Team Lead)', wide: true },
+  ctc:            { label: 'CTC offered',       placeholder: 'e.g. ₹12–15 LPA' },
+  joiningDate:    { label: 'Joining date',      placeholder: 'e.g. 3rd February' },
+  location:       { label: 'Work location',     placeholder: 'e.g. Bangalore, Remote' },
+  documents:      { label: 'Documents needed',  placeholder: 'e.g. Aadhaar, last 3 payslips, offer letter', wide: true },
+  manager:        { label: 'Reporting manager', placeholder: 'e.g. Anita Kapoor (VP HR)', wide: true },
+  department:     { label: 'Department / Team', placeholder: 'e.g. Finance, Engineering' },
+  lastWorkingDay: { label: 'Last working day',  placeholder: 'e.g. 31st January' },
+}
+
+const FIELD_CONTEXT_LABEL: Record<FieldId, string> = {
+  candidateName:  'Candidate',
+  role:           'Role',
+  round:          'Interview round',
+  date:           'Date',
+  time:           'Time',
+  platform:       'Platform',
+  interviewer:    'Interviewer',
+  ctc:            'CTC',
+  joiningDate:    'Joining date',
+  location:       'Location',
+  documents:      'Documents needed',
+  manager:        'Reporting manager',
+  department:     'Department',
+  lastWorkingDay: 'Last working day',
+}
+
+// Fields shown per reply type (notes always appended separately)
+const SCHEMA: Record<ReplyType, FieldId[]> = {
+  interview_invite:     ['candidateName', 'role', 'round', 'date', 'time', 'platform', 'interviewer'],
+  interview_reminder:   ['candidateName', 'role', 'round', 'date', 'time', 'platform'],
+  shortlist:            ['candidateName', 'role'],
+  offer:                ['candidateName', 'role', 'ctc', 'joiningDate', 'location'],
+  rejection:            ['candidateName', 'role'],
+  reschedule:           ['candidateName', 'role', 'round', 'date', 'time', 'platform'],
+  no_show:              ['candidateName', 'role', 'date', 'time'],
+  follow_up:            ['candidateName', 'role'],
+  salary_negotiation:   ['candidateName', 'role', 'ctc'],
+  joining_confirmation: ['candidateName', 'role', 'joiningDate', 'location'],
+  thank_you:            ['candidateName', 'role', 'round'],
+  document_collection:  ['candidateName', 'role', 'joiningDate', 'documents'],
+  onboarding:           ['candidateName', 'role', 'joiningDate', 'location', 'manager', 'department'],
+  welcome:              ['candidateName', 'role', 'joiningDate', 'department', 'manager'],
+  exit_interview:       ['candidateName', 'role', 'lastWorkingDay'],
+}
+
+function composeContext(replyType: ReplyType, fields: Record<string, string>): string {
+  const parts: string[] = []
+  for (const id of SCHEMA[replyType]) {
+    const val = (fields[id] ?? '').trim()
+    if (val) parts.push(`${FIELD_CONTEXT_LABEL[id]}: ${val}`)
+  }
+  const notes = (fields['notes'] ?? '').trim()
+  if (notes) parts.push(notes)
+  return parts.join('. ')
+}
+
+// ──────────────────────────────────────────────────────────────────────────
 
 function GeneratorContent() {
   const searchParams = useSearchParams()
@@ -65,7 +133,7 @@ function GeneratorContent() {
     (searchParams.get('type') as ReplyType) || 'interview_invite'
   )
   const [tone, setTone] = useState<Tone>('friendly')
-  const [contextInput, setContextInput] = useState('')
+  const [fields, setFields] = useState<Record<string, string>>({})
   const [output, setOutput] = useState('')
   const [outputFresh, setOutputFresh] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -84,10 +152,16 @@ function GeneratorContent() {
     return () => clearTimeout(t)
   }, [outputFresh])
 
-  useEffect(() => { setSubjectLines([]) }, [contextInput, replyType, format])
+  function setField(id: string, val: string) {
+    setFields(prev => ({ ...prev, [id]: val }))
+    setSubjectLines([])
+  }
+
+  const contextReady = composeContext(replyType, fields).trim().length > 0
 
   async function generate() {
-    if (!contextInput.trim()) return
+    const ctx = composeContext(replyType, fields)
+    if (!ctx.trim()) return
     setLoading(true)
     setError('')
     setOutput('')
@@ -97,7 +171,7 @@ function GeneratorContent() {
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reply_type: replyType, tone, context_input: contextInput, format, language: 'english' }),
+        body: JSON.stringify({ reply_type: replyType, tone, context_input: ctx, format, language: 'english' }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -132,13 +206,14 @@ function GeneratorContent() {
   }
 
   async function generateSubjectLines() {
-    if (!contextInput.trim()) return
+    const ctx = composeContext(replyType, fields)
+    if (!ctx.trim()) return
     setSubjectLoading(true)
     try {
       const res = await fetch('/api/subject-lines', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ context_input: contextInput, reply_type: replyType }),
+        body: JSON.stringify({ context_input: ctx, reply_type: replyType }),
       })
       const data = await res.json()
       if (res.ok) setSubjectLines(data.subject_lines)
@@ -165,15 +240,15 @@ function GeneratorContent() {
                      'text-status-placedText bg-status-placedBg'
 
   const selectedType = REPLY_TYPES.find(t => t.value === replyType)
+  const schemaFields = SCHEMA[replyType]
 
   return (
     <div className="flex flex-col h-full">
       <UpsellModal open={showUpsell} onClose={() => setShowUpsell(false)} reason="limit_reached" />
 
-      {/* Page header */}
       <div className="mb-6">
         <h1 className="text-xl font-bold text-ink tracking-tight">Reply Generator</h1>
-        <p className="text-sm text-ink-secondary mt-0.5">Choose a format, pick a message type, describe the situation — get a ready-to-send draft.</p>
+        <p className="text-sm text-ink-secondary mt-0.5">Pick a message type, fill in the details — get a ready-to-send draft.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[420px_1fr] gap-5 items-start">
@@ -254,23 +329,41 @@ function GeneratorContent() {
             </div>
           </div>
 
-          {/* Context */}
+          {/* Structured fields */}
           <div className="bg-surface-card border border-surface-border rounded-xl shadow-card p-5">
-            <div className="flex items-center justify-between mb-1.5">
-              <p className="text-[11px] font-bold text-ink-muted uppercase tracking-widest">Situation details</p>
-              <span className="text-[11px] text-ink-muted">{contextInput.length} chars</span>
+            <p className="text-[11px] font-bold text-ink-muted uppercase tracking-widest mb-3">Candidate details</p>
+            <div className="grid grid-cols-2 gap-3">
+              {schemaFields.map(id => {
+                const def = FIELD_DEFS[id]
+                return (
+                  <div key={id} className={def.wide ? 'col-span-2' : ''}>
+                    <label className="text-xs font-semibold text-ink-secondary mb-1 block">{def.label}</label>
+                    <input
+                      type="text"
+                      value={fields[id] ?? ''}
+                      onChange={e => setField(id, e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter' && contextReady) generate() }}
+                      placeholder={def.placeholder}
+                      className="w-full border border-surface-border rounded-lg px-3 py-2 text-sm text-ink bg-surface-sunken placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition"
+                    />
+                  </div>
+                )
+              })}
+              {/* Notes — always shown */}
+              <div className="col-span-2">
+                <label className="text-xs font-semibold text-ink-secondary mb-1 block">Additional notes</label>
+                <textarea
+                  rows={2}
+                  value={fields['notes'] ?? ''}
+                  onChange={e => setField('notes', e.target.value)}
+                  placeholder="Any extra context — company name, CTC range, special instructions…"
+                  className="w-full border border-surface-border rounded-lg px-3 py-2 text-sm text-ink bg-surface-sunken placeholder:text-ink-muted resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition leading-relaxed"
+                />
+              </div>
             </div>
-            <p className="text-xs text-ink-muted mb-3">Paste or type the candidate details — name, role, date, anything relevant.</p>
-            <textarea
-              rows={6}
-              value={contextInput}
-              onChange={(e) => setContextInput(e.target.value)}
-              placeholder={FORMAT_PLACEHOLDERS[format]}
-              className="w-full border border-surface-border rounded-lg px-3 py-2.5 text-sm text-ink bg-surface-sunken placeholder:text-ink-muted resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition leading-relaxed"
-            />
             {/* Mobile generate */}
             <div className="lg:hidden mt-3 flex justify-end">
-              <GenerateButton loading={loading} disabled={!contextInput.trim()} onClick={generate} />
+              <GenerateButton loading={loading} disabled={!contextReady} onClick={generate} />
             </div>
           </div>
         </div>
@@ -288,7 +381,7 @@ function GeneratorContent() {
                 </span>
               )}
             </div>
-            <GenerateButton loading={loading} disabled={!contextInput.trim()} onClick={generate} />
+            <GenerateButton loading={loading} disabled={!contextReady} onClick={generate} />
           </div>
 
           {error && (
@@ -317,7 +410,6 @@ function GeneratorContent() {
           {/* Output */}
           {output && !loading && (
             <div className="bg-surface-card border border-surface-border rounded-xl shadow-card overflow-hidden">
-              {/* Output text area */}
               <div className={cn(
                 'p-6 transition-colors duration-700',
                 outputFresh ? 'bg-accent-soft' : 'bg-surface-sunken'
@@ -451,7 +543,7 @@ function GeneratorContent() {
               </div>
               <p className="text-base font-semibold text-ink">Your draft will appear here</p>
               <p className="text-sm text-ink-muted max-w-xs leading-relaxed">
-                Fill in the situation details on the left, then click <span className="font-semibold text-ink">Generate reply</span> to get a ready-to-send draft.
+                Fill in the candidate details on the left, then click <span className="font-semibold text-ink">Generate reply</span>.
               </p>
             </div>
           )}
