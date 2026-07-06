@@ -4,42 +4,58 @@ import { useState, useEffect, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import {
   Copy, Check, RefreshCw, Pencil, Mail, MessageCircle,
-  Smartphone, Link2, Hash, LayoutGrid, Sparkles,
+  Smartphone, Link2, Hash, LayoutGrid, Sparkles, Wand2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/input'
-import { PageHeader } from '@/components/ui/card'
 import { UpsellModal } from '@/components/ui/upsell-modal'
-import { Tone, ReplyType, Language, MessageFormat, RewriteStyle, SubjectLine } from '@/types'
-import {
-  TONE_LABELS, REPLY_TYPE_LABELS, LANGUAGE_LABELS, FORMAT_LABELS, REWRITE_LABELS, cn,
-} from '@/lib/utils'
+import { Tone, ReplyType, MessageFormat, RewriteStyle, SubjectLine } from '@/types'
+import { REPLY_TYPE_LABELS, FORMAT_LABELS, REWRITE_LABELS, cn } from '@/lib/utils'
 
-const TONES: Tone[] = ['formal', 'friendly', 'hinglish']
-const LANGUAGES: Language[] = ['english', 'hindi', 'marathi', 'tamil', 'telugu', 'gujarati', 'bengali']
-const FORMATS: MessageFormat[] = ['email', 'whatsapp', 'sms', 'linkedin', 'slack', 'teams']
+const TONES: { value: Tone; label: string; desc: string }[] = [
+  { value: 'formal',   label: 'Formal',   desc: 'Professional & corporate' },
+  { value: 'friendly', label: 'Friendly', desc: 'Warm & approachable' },
+]
+
+const FORMATS: { value: MessageFormat; icon: React.ReactNode; label: string }[] = [
+  { value: 'email',    icon: <Mail className="w-4 h-4" />,          label: 'Email' },
+  { value: 'whatsapp', icon: <MessageCircle className="w-4 h-4" />, label: 'WhatsApp' },
+  { value: 'sms',      icon: <Smartphone className="w-4 h-4" />,    label: 'SMS' },
+  { value: 'linkedin', icon: <Link2 className="w-4 h-4" />,         label: 'LinkedIn' },
+  { value: 'slack',    icon: <Hash className="w-4 h-4" />,          label: 'Slack' },
+  { value: 'teams',    icon: <LayoutGrid className="w-4 h-4" />,    label: 'Teams' },
+]
+
+const REPLY_TYPES: { value: ReplyType; emoji: string; label: string }[] = [
+  { value: 'interview_invite',    emoji: '📅', label: 'Interview Invite' },
+  { value: 'interview_reminder',  emoji: '⏰', label: 'Interview Reminder' },
+  { value: 'shortlist',           emoji: '✅', label: 'Shortlisted' },
+  { value: 'offer',               emoji: '🎉', label: 'Job Offer' },
+  { value: 'rejection',           emoji: '🙏', label: 'Rejection' },
+  { value: 'reschedule',          emoji: '🔄', label: 'Reschedule' },
+  { value: 'no_show',             emoji: '👻', label: 'No Show' },
+  { value: 'follow_up',           emoji: '💬', label: 'Follow-up' },
+  { value: 'salary_negotiation',  emoji: '💰', label: 'Salary Discussion' },
+  { value: 'joining_confirmation',emoji: '📝', label: 'Joining Confirmation' },
+  { value: 'thank_you',           emoji: '⭐', label: 'Post-Interview Thanks' },
+  { value: 'document_collection', emoji: '📋', label: 'Document Request' },
+  { value: 'onboarding',          emoji: '🚀', label: 'Onboarding' },
+  { value: 'welcome',             emoji: '👋', label: 'Welcome' },
+  { value: 'exit_interview',      emoji: '🚪', label: 'Exit Interview' },
+]
+
 const REWRITE_STYLES: RewriteStyle[] = [
   'shorter', 'longer', 'professional', 'friendly', 'polite',
   'stronger', 'softer', 'simple', 'corporate', 'startup',
 ]
-const REPLY_TYPES = Object.entries(REPLY_TYPE_LABELS) as [ReplyType, string][]
-
-const FORMAT_ICONS: Record<MessageFormat, React.ReactNode> = {
-  email: <Mail className="w-3.5 h-3.5" />,
-  whatsapp: <MessageCircle className="w-3.5 h-3.5" />,
-  sms: <Smartphone className="w-3.5 h-3.5" />,
-  linkedin: <Link2 className="w-3.5 h-3.5" />,
-  slack: <Hash className="w-3.5 h-3.5" />,
-  teams: <LayoutGrid className="w-3.5 h-3.5" />,
-}
 
 const FORMAT_PLACEHOLDERS: Record<MessageFormat, string> = {
-  email: 'e.g. Priya Sharma, Sales Manager role at Delhi office. Interview on 20th Jan, 11am at Connaught Place HQ. Panel: 3 rounds.',
-  whatsapp: 'e.g. Rahul rejected for frontend role. Keep it warm and brief — we want to stay in touch.',
-  sms: 'e.g. Remind Ananya — interview tomorrow 2pm, Google Meet link sent to her email.',
-  linkedin: 'e.g. Vikram applied for Product Manager. Shortlisted. First round is with team lead this week.',
-  slack: 'e.g. Remind the team: Seema joins Monday as Design Lead. First day onboarding at 10am.',
-  teams: 'e.g. Collecting documents from Arjun before his joining date next week. Need Aadhaar and last payslip.',
+  email:    'e.g. Priya Sharma, Senior HR Manager role at Bangalore office. Round 1 interview with Rahul (Team Lead) on 22nd Jan, 11:30am via Google Meet. CTC range 12–15 LPA.',
+  whatsapp: 'e.g. Rahul rejected for frontend role. Keep it warm and brief — we want to stay in touch for future openings.',
+  sms:      'e.g. Remind Ananya — interview tomorrow 2pm, Google Meet link sent to her email.',
+  linkedin: 'e.g. Vikram shortlisted for Product Manager. First round is with the team lead this week.',
+  slack:    'e.g. Remind the team: Seema joins Monday as Design Lead. First day onboarding 10am.',
+  teams:    'e.g. Collecting documents from Arjun before joining next week. Need Aadhaar and last payslip.',
 }
 
 function GeneratorContent() {
@@ -48,7 +64,6 @@ function GeneratorContent() {
   const [replyType, setReplyType] = useState<ReplyType>(
     (searchParams.get('type') as ReplyType) || 'interview_invite'
   )
-  const [language, setLanguage] = useState<Language>('english')
   const [tone, setTone] = useState<Tone>('friendly')
   const [contextInput, setContextInput] = useState('')
   const [output, setOutput] = useState('')
@@ -62,24 +77,14 @@ function GeneratorContent() {
   const [subjectLines, setSubjectLines] = useState<SubjectLine[]>([])
   const [subjectLoading, setSubjectLoading] = useState(false)
   const [copiedSubject, setCopiedSubject] = useState<number | null>(null)
-  const rewriteScrollRef = useRef<HTMLDivElement>(null)
 
-  // When language changes to non-English, reset Hinglish tone to friendly
-  useEffect(() => {
-    if (language !== 'english' && tone === 'hinglish') setTone('friendly')
-  }, [language, tone])
-
-  // Fresh highlight fades after 3s
   useEffect(() => {
     if (!outputFresh) return
     const t = setTimeout(() => setOutputFresh(false), 3000)
     return () => clearTimeout(t)
   }, [outputFresh])
 
-  // Reset subject lines when inputs change
-  useEffect(() => {
-    setSubjectLines([])
-  }, [contextInput, replyType, format])
+  useEffect(() => { setSubjectLines([]) }, [contextInput, replyType, format])
 
   async function generate() {
     if (!contextInput.trim()) return
@@ -92,13 +97,7 @@ function GeneratorContent() {
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          reply_type: replyType,
-          tone,
-          context_input: contextInput,
-          format,
-          language,
-        }),
+        body: JSON.stringify({ reply_type: replyType, tone, context_input: contextInput, format, language: 'english' }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -109,7 +108,7 @@ function GeneratorContent() {
       setOutput(data.generated_text)
       setOutputFresh(true)
     } catch {
-      setError('Network error — please check your connection and try again.')
+      setError('Network error — please check your connection.')
     } finally {
       setLoading(false)
     }
@@ -126,12 +125,7 @@ function GeneratorContent() {
         body: JSON.stringify({ text: output, style }),
       })
       const data = await res.json()
-      if (res.ok) {
-        setOutput(data.rewritten_text)
-        setOutputFresh(true)
-      }
-    } catch {
-      // silent fail — output stays as-is
+      if (res.ok) { setOutput(data.rewritten_text); setOutputFresh(true) }
     } finally {
       setRewriteLoading(null)
     }
@@ -148,8 +142,6 @@ function GeneratorContent() {
       })
       const data = await res.json()
       if (res.ok) setSubjectLines(data.subject_lines)
-    } catch {
-      // silent fail
     } finally {
       setSubjectLoading(false)
     }
@@ -168,194 +160,199 @@ function GeneratorContent() {
   }
 
   const urgencyColor = (u: string) =>
-    u === 'High' ? 'text-status-droppedText bg-status-droppedBg' :
+    u === 'High'   ? 'text-status-droppedText bg-status-droppedBg' :
     u === 'Medium' ? 'text-status-processText bg-status-processBg' :
-    'text-status-placedText bg-status-placedBg'
+                     'text-status-placedText bg-status-placedBg'
+
+  const selectedType = REPLY_TYPES.find(t => t.value === replyType)
 
   return (
-    <div>
+    <div className="flex flex-col h-full">
       <UpsellModal open={showUpsell} onClose={() => setShowUpsell(false)} reason="limit_reached" />
-      <PageHeader
-        title="Reply generator"
-        description="Pick a format, choose your message type, and describe the situation."
-      />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      {/* Page header */}
+      <div className="mb-6">
+        <h1 className="text-xl font-bold text-ink tracking-tight">Reply Generator</h1>
+        <p className="text-sm text-ink-secondary mt-0.5">Choose a format, pick a message type, describe the situation — get a ready-to-send draft.</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[420px_1fr] gap-5 items-start">
 
         {/* ── LEFT PANE ── */}
         <div className="flex flex-col gap-4">
-          <div className="bg-surface-card border border-surface-border rounded-lg shadow-card p-5 flex flex-col gap-5">
 
-            {/* Format selector */}
-            <div>
-              <p className="text-xs font-semibold text-ink-muted uppercase tracking-widest mb-2">Format</p>
-              <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-6">
-                {FORMATS.map((f) => (
-                  <button
-                    key={f}
-                    onClick={() => setFormat(f)}
-                    className={cn(
-                      'flex flex-col items-center gap-1 py-2 px-1 rounded border text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
-                      format === f
-                        ? 'border-primary bg-primary text-ink-inverse'
-                        : 'border-surface-border bg-surface-page text-ink-secondary hover:border-surface-borderStrong hover:text-ink'
-                    )}
-                  >
-                    {FORMAT_ICONS[f]}
-                    {FORMAT_LABELS[f]}
-                  </button>
-                ))}
-              </div>
+          {/* Format */}
+          <div className="bg-surface-card border border-surface-border rounded-xl shadow-card p-5">
+            <p className="text-[11px] font-bold text-ink-muted uppercase tracking-widest mb-3">Send via</p>
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+              {FORMATS.map(({ value, icon, label }) => (
+                <button
+                  key={value}
+                  onClick={() => setFormat(value)}
+                  className={cn(
+                    'flex flex-col items-center gap-1.5 py-3 px-1 rounded-lg border text-xs font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                    format === value
+                      ? 'border-primary bg-primary text-white shadow-sm'
+                      : 'border-surface-border bg-surface-page text-ink-secondary hover:border-surface-borderStrong hover:bg-surface-sunken hover:text-ink'
+                  )}
+                >
+                  {icon}
+                  {label}
+                </button>
+              ))}
             </div>
+          </div>
 
-            {/* Divider */}
-            <div className="border-t border-surface-border" />
-
-            {/* Reply type */}
-            <div>
-              <p className="text-xs font-semibold text-ink-muted uppercase tracking-widest mb-2">Message type</p>
-              <div className="grid grid-cols-2 gap-1.5 max-h-64 overflow-y-auto pr-0.5">
-                {REPLY_TYPES.map(([val, label]) => (
-                  <button
-                    key={val}
-                    onClick={() => setReplyType(val)}
-                    className={cn(
-                      'text-left px-3 py-2 rounded border text-sm transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
-                      replyType === val
-                        ? 'border-accent bg-accent text-primary font-semibold'
-                        : 'border-surface-border bg-surface-page text-ink-secondary hover:border-surface-borderStrong hover:text-ink'
-                    )}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
+          {/* Message type */}
+          <div className="bg-surface-card border border-surface-border rounded-xl shadow-card p-5">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[11px] font-bold text-ink-muted uppercase tracking-widest">Message type</p>
+              {selectedType && (
+                <span className="text-xs font-semibold text-accent-icon">
+                  {selectedType.emoji} {selectedType.label}
+                </span>
+              )}
             </div>
-
-            {/* Divider */}
-            <div className="border-t border-surface-border" />
-
-            {/* Language */}
-            <div>
-              <p className="text-xs font-semibold text-ink-muted uppercase tracking-widest mb-2">Language</p>
-              <div className="flex gap-1.5 flex-wrap">
-                {LANGUAGES.map((lang) => (
-                  <button
-                    key={lang}
-                    onClick={() => setLanguage(lang)}
-                    className={cn(
-                      'px-3 py-1.5 rounded border text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
-                      language === lang
-                        ? 'border-primary bg-primary text-ink-inverse'
-                        : 'border-surface-border bg-surface-page text-ink-secondary hover:border-surface-borderStrong hover:text-ink'
-                    )}
-                  >
-                    {LANGUAGE_LABELS[lang]}
-                  </button>
-                ))}
-              </div>
+            <div className="grid grid-cols-2 gap-1.5">
+              {REPLY_TYPES.map(({ value, emoji, label }) => (
+                <button
+                  key={value}
+                  onClick={() => setReplyType(value)}
+                  className={cn(
+                    'flex items-center gap-2 text-left px-3 py-2.5 rounded-lg border text-sm transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                    replyType === value
+                      ? 'border-accent bg-accent text-primary font-semibold shadow-sm'
+                      : 'border-surface-border bg-surface-page text-ink-secondary hover:border-surface-borderStrong hover:bg-surface-sunken hover:text-ink'
+                  )}
+                >
+                  <span className="text-base leading-none">{emoji}</span>
+                  <span className="text-[13px] leading-tight">{label}</span>
+                </button>
+              ))}
             </div>
+          </div>
 
-            {/* Tone — hidden when non-English language selected */}
-            {language === 'english' && (
-              <div>
-                <p className="text-xs font-semibold text-ink-muted uppercase tracking-widest mb-2">Tone</p>
-                <div className="flex gap-2">
-                  {TONES.map((t) => (
-                    <button
-                      key={t}
-                      onClick={() => setTone(t)}
-                      className={cn(
-                        'flex-1 py-2 rounded border text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
-                        tone === t
-                          ? 'border-primary bg-primary-soft text-primary-deep'
-                          : 'border-surface-border bg-surface-page text-ink-secondary hover:border-surface-borderStrong hover:text-ink'
-                      )}
-                    >
-                      {TONE_LABELS[t]}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+          {/* Tone */}
+          <div className="bg-surface-card border border-surface-border rounded-xl shadow-card p-5">
+            <p className="text-[11px] font-bold text-ink-muted uppercase tracking-widest mb-3">Tone</p>
+            <div className="grid grid-cols-2 gap-2">
+              {TONES.map(({ value, label, desc }) => (
+                <button
+                  key={value}
+                  onClick={() => setTone(value)}
+                  className={cn(
+                    'flex flex-col items-start gap-0.5 px-4 py-3 rounded-lg border text-left transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                    tone === value
+                      ? 'border-primary bg-primary text-white shadow-sm'
+                      : 'border-surface-border bg-surface-page hover:border-surface-borderStrong hover:bg-surface-sunken'
+                  )}
+                >
+                  <span className={cn('text-sm font-semibold', tone === value ? 'text-white' : 'text-ink')}>{label}</span>
+                  <span className={cn('text-xs', tone === value ? 'text-white/70' : 'text-ink-muted')}>{desc}</span>
+                </button>
+              ))}
+            </div>
+          </div>
 
-            {/* Context */}
-            <Textarea
-              label="Situation details"
-              rows={5}
+          {/* Context */}
+          <div className="bg-surface-card border border-surface-border rounded-xl shadow-card p-5">
+            <div className="flex items-center justify-between mb-1.5">
+              <p className="text-[11px] font-bold text-ink-muted uppercase tracking-widest">Situation details</p>
+              <span className="text-[11px] text-ink-muted">{contextInput.length} chars</span>
+            </div>
+            <p className="text-xs text-ink-muted mb-3">Paste or type the candidate details — name, role, date, anything relevant.</p>
+            <textarea
+              rows={6}
               value={contextInput}
               onChange={(e) => setContextInput(e.target.value)}
               placeholder={FORMAT_PLACEHOLDERS[format]}
+              className="w-full border border-surface-border rounded-lg px-3 py-2.5 text-sm text-ink bg-surface-sunken placeholder:text-ink-muted resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition leading-relaxed"
             />
-          </div>
-
-          {/* Generate — mobile */}
-          <div className="lg:hidden flex justify-end">
-            <GenerateButton loading={loading} disabled={!contextInput.trim()} onClick={generate} />
+            {/* Mobile generate */}
+            <div className="lg:hidden mt-3 flex justify-end">
+              <GenerateButton loading={loading} disabled={!contextInput.trim()} onClick={generate} />
+            </div>
           </div>
         </div>
 
         {/* ── RIGHT PANE ── */}
         <div className="flex flex-col gap-4">
 
-          {/* Generate — desktop */}
-          <div className="hidden lg:flex justify-end">
+          {/* Desktop generate */}
+          <div className="hidden lg:flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm text-ink-muted">
+              {output && !loading && (
+                <span className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-accent-icon inline-block" />
+                  Draft ready — review before sending
+                </span>
+              )}
+            </div>
             <GenerateButton loading={loading} disabled={!contextInput.trim()} onClick={generate} />
           </div>
 
           {error && (
-            <div className="bg-status-droppedBg border border-status-dropped/30 rounded px-4 py-3 text-sm text-status-droppedText">
+            <div className="bg-status-droppedBg border border-status-dropped/30 rounded-xl px-4 py-3 text-sm text-status-droppedText">
               {error}
             </div>
           )}
 
+          {/* Loading skeleton */}
           {loading && (
-            <div className="bg-surface-card border border-surface-border rounded-lg shadow-card p-5 flex items-center gap-3 text-ink-muted text-sm">
-              <RefreshCw className="w-4 h-4 animate-spin" /> Drafting your {FORMAT_LABELS[format]} message…
+            <div className="bg-surface-card border border-surface-border rounded-xl shadow-card p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <Wand2 className="w-4 h-4 text-accent-icon animate-pulse" />
+                <span className="text-sm text-ink-secondary">Writing your {FORMAT_LABELS[format]} message…</span>
+              </div>
+              <div className="space-y-2.5">
+                <div className="h-3 bg-surface-sunken rounded animate-pulse w-full" />
+                <div className="h-3 bg-surface-sunken rounded animate-pulse w-5/6" />
+                <div className="h-3 bg-surface-sunken rounded animate-pulse w-full" />
+                <div className="h-3 bg-surface-sunken rounded animate-pulse w-4/6" />
+                <div className="h-3 bg-surface-sunken rounded animate-pulse w-5/6" />
+              </div>
             </div>
           )}
 
+          {/* Output */}
           {output && !loading && (
-            <div className="bg-surface-card border border-surface-border rounded-lg shadow-card overflow-hidden">
-              {/* Output text */}
-              <div
-                className={cn(
-                  'p-5 transition-colors duration-700',
-                  outputFresh ? 'bg-accent-soft' : 'bg-surface-sunken'
-                )}
-              >
+            <div className="bg-surface-card border border-surface-border rounded-xl shadow-card overflow-hidden">
+              {/* Output text area */}
+              <div className={cn(
+                'p-6 transition-colors duration-700',
+                outputFresh ? 'bg-accent-soft' : 'bg-surface-sunken'
+              )}>
                 {editing ? (
                   <textarea
                     value={output}
                     onChange={(e) => setOutput(e.target.value)}
                     onBlur={() => setEditing(false)}
-                    rows={8}
-                    className="w-full bg-transparent text-ink text-base leading-[1.7] resize-none focus:outline-none"
+                    rows={10}
+                    className="w-full bg-transparent text-ink text-[15px] leading-[1.75] resize-none focus:outline-none"
                     autoFocus
                   />
                 ) : (
-                  <p className="text-ink text-base leading-[1.7] whitespace-pre-wrap">{output}</p>
+                  <p className="text-ink text-[15px] leading-[1.75] whitespace-pre-wrap">{output}</p>
                 )}
-                <p className={cn('text-xs mt-3', outputFresh ? 'text-accent-text' : 'text-ink-muted')}>
-                  {outputFresh ? 'AI draft — review before sending' : 'Edited by you'}
-                </p>
               </div>
 
-              {/* Rewrite buttons */}
-              <div className="border-t border-surface-border px-4 py-3">
-                <p className="text-[10px] font-semibold text-ink-muted uppercase tracking-widest mb-2">Rewrite</p>
-                <div ref={rewriteScrollRef} className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+              {/* Rewrite strip */}
+              <div className="border-t border-surface-border bg-surface-page px-5 py-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Wand2 className="w-3 h-3 text-ink-muted" />
+                  <p className="text-[10px] font-bold text-ink-muted uppercase tracking-widest">Rewrite</p>
+                </div>
+                <div className="flex gap-1.5 overflow-x-auto pb-0.5 [&::-webkit-scrollbar]:hidden">
                   {REWRITE_STYLES.map((style) => (
                     <button
                       key={style}
                       onClick={() => rewrite(style)}
                       disabled={!!rewriteLoading}
                       className={cn(
-                        'flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium whitespace-nowrap transition-all duration-150',
-                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                        'flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium whitespace-nowrap transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
                         rewriteLoading === style
-                          ? 'border-primary bg-primary text-ink-inverse'
-                          : 'border-surface-border bg-surface-page text-ink-secondary hover:border-surface-borderStrong hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed'
+                          ? 'border-primary bg-primary text-white'
+                          : 'border-surface-border bg-white text-ink-secondary hover:border-primary hover:text-primary disabled:opacity-40 disabled:cursor-not-allowed'
                       )}
                     >
                       {rewriteLoading === style && <RefreshCw className="w-3 h-3 animate-spin" />}
@@ -365,77 +362,96 @@ function GeneratorContent() {
                 </div>
               </div>
 
-              {/* Action bar */}
-              <div className="px-5 py-3 border-t border-surface-border flex items-center gap-2">
-                <Button size="sm" variant="secondary" onClick={copy}>
-                  {copied ? <><Check className="w-3.5 h-3.5" /> Copied</> : <><Copy className="w-3.5 h-3.5" /> Copy</>}
-                </Button>
-                <Button size="sm" variant="secondary" onClick={() => { setEditing(true); setOutputFresh(false) }}>
+              {/* Actions */}
+              <div className="px-5 py-3 border-t border-surface-border flex items-center gap-2 bg-white">
+                <button
+                  onClick={copy}
+                  className={cn(
+                    'flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all',
+                    copied
+                      ? 'border-accent bg-accent-soft text-accent-text'
+                      : 'border-surface-border bg-surface-page text-ink-secondary hover:border-primary hover:text-primary'
+                  )}
+                >
+                  {copied ? <><Check className="w-3.5 h-3.5" />Copied!</> : <><Copy className="w-3.5 h-3.5" />Copy message</>}
+                </button>
+                <button
+                  onClick={() => { setEditing(true); setOutputFresh(false) }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-surface-border bg-surface-page text-xs font-semibold text-ink-secondary hover:border-primary hover:text-primary transition-all"
+                >
                   <Pencil className="w-3.5 h-3.5" /> Edit
-                </Button>
-                <Button size="sm" variant="ai" onClick={generate} className="ml-auto">
-                  Regenerate
-                </Button>
+                </button>
+                <button
+                  onClick={generate}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary bg-primary text-xs font-semibold text-white hover:bg-primary-hover transition-all ml-auto"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" /> Regenerate
+                </button>
               </div>
             </div>
           )}
 
-          {/* Subject line generator — only for email */}
+          {/* Subject line card — email only */}
           {output && !loading && format === 'email' && (
-            <div className="bg-surface-card border border-surface-border rounded-lg shadow-card overflow-hidden">
-              <div className="px-5 py-4 flex items-center justify-between border-b border-surface-border">
+            <div className="bg-surface-card border border-surface-border rounded-xl shadow-card overflow-hidden">
+              <div className="px-5 py-4 flex items-center justify-between border-b border-surface-border bg-white">
                 <div>
-                  <p className="text-sm font-semibold text-ink">Subject lines</p>
-                  <p className="text-xs text-ink-muted mt-0.5">AI-generated with open rate prediction</p>
+                  <p className="text-sm font-bold text-ink">Subject lines</p>
+                  <p className="text-xs text-ink-muted mt-0.5">5 options with open rate prediction</p>
                 </div>
-                <Button
-                  size="sm"
-                  variant="ai"
+                <button
                   onClick={generateSubjectLines}
                   disabled={subjectLoading}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-primary-hover transition-all disabled:opacity-60"
                 >
                   {subjectLoading
-                    ? <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> Generating…</>
-                    : <><Sparkles className="w-3.5 h-3.5" /> Generate</>
-                  }
-                </Button>
+                    ? <><RefreshCw className="w-3.5 h-3.5 animate-spin" />Generating…</>
+                    : <><Sparkles className="w-3.5 h-3.5" />Generate</>}
+                </button>
               </div>
 
-              {subjectLines.length > 0 && (
+              {subjectLines.length > 0 ? (
                 <div className="divide-y divide-surface-border">
                   {subjectLines.map((s, i) => (
-                    <div key={i} className="px-5 py-3 flex items-start gap-3 group hover:bg-surface-sunken transition-colors">
+                    <div key={i} className="px-5 py-3.5 flex items-start gap-3 group hover:bg-surface-sunken transition-colors">
+                      <div className="w-5 h-5 rounded-full bg-surface-sunken border border-surface-border flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-[10px] font-bold text-ink-muted">{i + 1}</span>
+                      </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-ink font-medium leading-snug">{s.subject}</p>
+                        <p className="text-sm font-medium text-ink leading-snug">{s.subject}</p>
                         <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                          <span className="text-xs text-ink-muted">Score: <span className="font-semibold text-ink">{s.professional_score}/10</span></span>
-                          <span className={cn('text-[10px] font-semibold px-1.5 py-0.5 rounded', urgencyColor(s.urgency))}>{s.urgency}</span>
+                          <span className="text-xs text-ink-muted">Score <span className="font-bold text-ink">{s.professional_score}/10</span></span>
+                          <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full', urgencyColor(s.urgency))}>{s.urgency}</span>
                           <span className="text-xs text-ink-muted">~{s.open_rate}% open rate</span>
                         </div>
                       </div>
                       <button
                         onClick={() => copySubject(i, s.subject)}
-                        className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-xs text-ink-muted hover:text-ink px-2 py-1 rounded border border-surface-border bg-surface-page"
+                        className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-xs font-semibold text-ink-muted hover:text-primary px-2.5 py-1.5 rounded-lg border border-surface-border bg-white"
                       >
-                        {copiedSubject === i ? <><Check className="w-3 h-3 text-accent-icon" /> Copied</> : <><Copy className="w-3 h-3" /> Copy</>}
+                        {copiedSubject === i ? <><Check className="w-3 h-3 text-accent-icon" />Copied</> : <><Copy className="w-3 h-3" />Copy</>}
                       </button>
                     </div>
                   ))}
                 </div>
-              )}
-
-              {subjectLines.length === 0 && !subjectLoading && (
-                <div className="px-5 py-6 text-center text-sm text-ink-muted">
-                  Click <span className="font-medium text-ink">Generate</span> to get 5 subject line options with scores
+              ) : !subjectLoading ? (
+                <div className="px-5 py-8 text-center">
+                  <Sparkles className="w-5 h-5 text-ink-muted mx-auto mb-2" />
+                  <p className="text-sm text-ink-muted">Click <span className="font-semibold text-ink">Generate</span> to get 5 subject line options with open rate scores</p>
                 </div>
-              )}
+              ) : null}
             </div>
           )}
 
+          {/* Empty state */}
           {!output && !loading && !error && (
-            <div className="bg-surface-card border border-surface-border rounded-lg shadow-card p-10 flex flex-col items-center justify-center text-center gap-2">
-              <p className="text-ink-secondary text-sm">
-                Fill in the context and click <span className="font-medium text-ink">Generate reply</span>
+            <div className="bg-surface-card border border-surface-border rounded-xl shadow-card flex flex-col items-center justify-center text-center py-20 px-8 gap-3">
+              <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center mb-1">
+                <Wand2 className="w-5 h-5 text-accent" />
+              </div>
+              <p className="text-base font-semibold text-ink">Your draft will appear here</p>
+              <p className="text-sm text-ink-muted max-w-xs leading-relaxed">
+                Fill in the situation details on the left, then click <span className="font-semibold text-ink">Generate reply</span> to get a ready-to-send draft.
               </p>
             </div>
           )}
@@ -445,17 +461,23 @@ function GeneratorContent() {
   )
 }
 
-function GenerateButton({
-  loading, disabled, onClick,
-}: { loading: boolean; disabled: boolean; onClick: () => void }) {
+function GenerateButton({ loading, disabled, onClick }: { loading: boolean; disabled: boolean; onClick: () => void }) {
   return (
     <div className="relative">
       {!loading && !disabled && (
-        <span className="absolute inset-0 rounded animate-ping bg-accent opacity-30 pointer-events-none" />
+        <span className="absolute inset-0 rounded-lg animate-ping bg-accent opacity-25 pointer-events-none" />
       )}
-      <Button variant="ai" size="md" onClick={onClick} disabled={loading || disabled}>
-        {loading ? 'Generating…' : 'Generate reply'}
-      </Button>
+      <button
+        onClick={onClick}
+        disabled={loading || disabled}
+        className="relative flex items-center gap-2 px-5 py-2.5 rounded-lg bg-accent text-primary text-sm font-bold hover:bg-accent-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+      >
+        {loading ? (
+          <><RefreshCw className="w-4 h-4 animate-spin" />Generating…</>
+        ) : (
+          <><Wand2 className="w-4 h-4" />Generate reply</>
+        )}
+      </button>
     </div>
   )
 }
