@@ -1,16 +1,44 @@
 export type Tone = 'formal' | 'friendly' | 'hinglish'
 
+export type Language =
+  | 'english'
+  | 'hindi'
+  | 'marathi'
+  | 'tamil'
+  | 'telugu'
+  | 'gujarati'
+  | 'bengali'
+
+export type MessageFormat = 'email' | 'whatsapp' | 'sms' | 'linkedin' | 'slack' | 'teams'
+
+export type RewriteStyle =
+  | 'shorter'
+  | 'longer'
+  | 'professional'
+  | 'friendly'
+  | 'polite'
+  | 'stronger'
+  | 'softer'
+  | 'simple'
+  | 'corporate'
+  | 'startup'
+
 export type ReplyType =
   | 'offer'
   | 'rejection'
   | 'shortlist'
   | 'interview_invite'
+  | 'interview_reminder'
   | 'reschedule'
   | 'no_show'
   | 'follow_up'
   | 'salary_negotiation'
   | 'joining_confirmation'
   | 'thank_you'
+  | 'document_collection'
+  | 'onboarding'
+  | 'welcome'
+  | 'exit_interview'
 
 export type Plan = 'free' | 'pro' | 'team'
 
@@ -65,4 +93,11 @@ export interface Template {
   tone: Tone
   prompt_snippet: string
   is_system: boolean
+}
+
+export interface SubjectLine {
+  subject: string
+  professional_score: number
+  urgency: 'Low' | 'Medium' | 'High'
+  open_rate: number
 }

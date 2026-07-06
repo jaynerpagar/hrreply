@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { buildPrompt } from '@/lib/prompts'
 import { FREE_REPLY_LIMIT } from '@/lib/utils'
 import { sendLowReplyWarning } from '@/lib/email'
-import { Tone, ReplyType } from '@/types'
+import { Tone, ReplyType, Language, MessageFormat } from '@/types'
 
 const FREE_REPLY_WARNING = 20 // send warning email when user hits this count
 
@@ -21,11 +21,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { reply_type, tone, context_input, candidate_id } = await request.json() as {
+  const { reply_type, tone, context_input, candidate_id, format, language } = await request.json() as {
     reply_type: ReplyType
     tone: Tone
     context_input: string
     candidate_id?: string
+    format?: MessageFormat
+    language?: Language
   }
 
   if (!reply_type || !tone || !context_input?.trim()) {
@@ -57,7 +59,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'free_limit_reached' }, { status: 403 })
   }
 
-  const prompt = buildPrompt(reply_type, tone, context_input)
+  const prompt = buildPrompt(reply_type, tone, context_input, format ?? 'email', language ?? 'english')
 
   const message = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',

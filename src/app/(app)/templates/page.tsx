@@ -16,6 +16,11 @@ const CATEGORY_META: Record<ReplyType, { icon: string; color: string; bg: string
   salary_negotiation:  { icon: '💰', color: 'text-accent-text',       bg: 'bg-accent-soft' },
   joining_confirmation:{ icon: '📝', color: 'text-status-placedText', bg: 'bg-status-placedBg' },
   thank_you:           { icon: '🙏', color: 'text-primary',           bg: 'bg-primary-soft' },
+  interview_reminder:  { icon: '⏰', color: 'text-status-processText',bg: 'bg-status-processBg' },
+  document_collection: { icon: '📋', color: 'text-primary',           bg: 'bg-primary-soft' },
+  onboarding:          { icon: '🚀', color: 'text-status-placedText', bg: 'bg-status-placedBg' },
+  welcome:             { icon: '👋', color: 'text-accent-text',       bg: 'bg-accent-soft' },
+  exit_interview:      { icon: '🚪', color: 'text-status-droppedText',bg: 'bg-status-droppedBg' },
 }
 
 const TONE_STYLE: Record<Tone, { label: string; className: string }> = {
@@ -33,9 +38,10 @@ const grouped = SYSTEM_TEMPLATES.reduce<Record<string, typeof SYSTEM_TEMPLATES>>
 
 // Preserve order of first occurrence
 const ORDER: ReplyType[] = [
-  'interview_invite', 'shortlist', 'offer', 'rejection',
+  'interview_invite', 'interview_reminder', 'shortlist', 'offer', 'rejection',
   'reschedule', 'no_show', 'follow_up', 'salary_negotiation',
-  'joining_confirmation', 'thank_you',
+  'joining_confirmation', 'thank_you', 'document_collection', 'onboarding',
+  'welcome', 'exit_interview',
 ]
 
 export default function TemplatesPage() {
