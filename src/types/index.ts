@@ -101,3 +101,44 @@ export interface SubjectLine {
   urgency: 'Low' | 'Medium' | 'High'
   open_rate: number
 }
+
+export interface CandidateProfile {
+  name: string
+  currentTitle: string
+  currentCompany: string
+  experience: string
+  skills: string[]
+  projects: string[]
+  location: string
+  noticePeriod: string
+  education: string
+  email: string
+  phone: string
+}
+
+export interface JobProfile {
+  title: string
+  requiredSkills: string[]
+  niceToHaveSkills: string[]
+  experience: string
+  location: string
+  remotePolicy: string
+  compensation: string
+  companyName: string
+}
+
+export interface CompanySnapshot {
+  industry: string
+  size: string
+  techStack: string[]
+  culture: string
+  products: string
+}
+
+export interface OutreachMessages {
+  email: string
+  linkedin: string
+  whatsapp: string
+  jobPost: string
+  referral: string
+}
