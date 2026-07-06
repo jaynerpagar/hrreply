@@ -8,7 +8,7 @@ export default async function CandidatesPage() {
 
   const { data: candidates } = await supabase
     .from('candidates')
-    .select('id, name, phone, role_applied, stage, notes, last_contacted_at, created_at')
+    .select('id, name, phone, role_applied, stage, notes, last_contacted_at, created_at, current_company, skills, experience, notice_period, interview_at, offer_expiry_at, joining_at')
     .eq('user_id', user?.id ?? '')
     .order('created_at', { ascending: false })
 

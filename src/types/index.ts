@@ -83,6 +83,14 @@ export interface Candidate {
   stage: CandidateStage
   last_contacted_at?: string
   notes?: string
+  // Phase 4 enriched fields
+  current_company?: string
+  skills?: string
+  experience?: string
+  notice_period?: string
+  interview_at?: string
+  offer_expiry_at?: string
+  joining_at?: string
 }
 
 export interface Template {

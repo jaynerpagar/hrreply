@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import {
   Upload, FileText, User, Briefcase, Building2,
   Sparkles, Copy, Check, RefreshCw, ChevronDown, ChevronUp,
@@ -304,7 +305,9 @@ const OUTREACH_TABS: { value: OutreachTab; label: string; icon: React.ReactNode 
   { value: 'referral', label: 'Referral',  icon: <Users className="w-3.5 h-3.5" /> },
 ]
 
-export default function OutreachPage() {
+function OutreachContent() {
+  const searchParams = useSearchParams()
+
   // Candidate state
   const [candidateTab, setCandidateTab] = useState<CandidateTab>('resume')
   const [resumeFile, setResumeFile]     = useState<File | null>(null)
@@ -336,6 +339,35 @@ export default function OutreachPage() {
   const [copied, setCopied]             = useState(false)
   const [error, setError]               = useState('')
   const [showUpsell, setShowUpsell]     = useState(false)
+
+  // Pre-fill from candidateId URL param
+  useEffect(() => {
+    const candidateId = searchParams.get('candidateId')
+    if (!candidateId) return
+    fetch(`/api/candidates/${candidateId}`)
+      .then(r => r.json())
+      .then(c => {
+        if (!c?.name) return
+        setCandidateTab('manual')
+        setCandidate({
+          name:           c.name           ?? '',
+          currentTitle:   '',
+          currentCompany: c.current_company ?? '',
+          experience:     c.experience      ?? '',
+          skills:         c.skills ? c.skills.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
+          location:       '',
+          noticePeriod:   c.notice_period   ?? '',
+          projects:       [],
+          education:      '',
+          email:          '',
+          phone:          c.phone           ?? '',
+        })
+        setJob(prev => ({ ...prev, title: c.role_applied ?? '' }))
+        setOpenSections({ candidate: true, job: true, company: false })
+      })
+      .catch(() => {/* silently ignore */})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function toggleSection(key: keyof typeof openSections) {
     setOpenSections(s => ({ ...s, [key]: !s[key] }))
@@ -762,5 +794,14 @@ export default function OutreachPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+
+export default function OutreachPage() {
+  return (
+    <Suspense>
+      <OutreachContent />
+    </Suspense>
   )
 }
