@@ -7,7 +7,7 @@ import type { User } from '@supabase/supabase-js'
 import { cn } from '@/lib/utils'
 import { Logo } from '@/components/ui/logo'
 import { createClient } from '@/lib/supabase/client'
-import { LayoutDashboard, Wand2, BookOpen, History, Users, Settings, CreditCard, Menu, X, LogOut, Bot, Sparkles, Zap, Brain, BarChart2, FileSpreadsheet, UsersRound } from 'lucide-react'
+import { LayoutDashboard, Wand2, BookOpen, History, Users, Settings, CreditCard, Menu, X, LogOut, Bot, Sparkles, Zap, Brain, BarChart2, FileSpreadsheet, UsersRound, Plug } from 'lucide-react'
 
 const NAV = [
   { href: '/dashboard',    label: 'Dashboard',            icon: LayoutDashboard  },
@@ -21,7 +21,8 @@ const NAV = [
   { href: '/analytics',   label: 'Analytics',             icon: BarChart2        },
   { href: '/team',        label: 'Team Workspace',        icon: UsersRound       },
   { href: '/history',     label: 'Reply history',         icon: History          },
-  { href: '/candidates',  label: 'Candidates',            icon: Users            },
+  { href: '/candidates',   label: 'Candidates',            icon: Users            },
+  { href: '/integrations', label: 'Integrations',          icon: Plug             },
 ]
 
 const BOTTOM_NAV = [
