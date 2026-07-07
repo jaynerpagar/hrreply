@@ -1,4 +1,6 @@
 // HRReply Extension — Background Service Worker
+importScripts('config.js') // makes HRREPLY_CONFIG available in the SW
+
 const SUPABASE_URL = 'https://vfpqftcfimupgdccnrnh.supabase.co'
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmcHFmdGNmaW11cGdkY2Nucm5oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5MTYwNTAsImV4cCI6MjA5NjQ5MjA1MH0.8GqIaWTZvVy5kCvsGpKKUnfa4Iyp0yHsRKSuR2i-Cyw'
 const API_BASE = 'https://www.hrreply.in'
