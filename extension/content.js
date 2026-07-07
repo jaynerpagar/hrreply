@@ -1,16 +1,27 @@
 // HRReply Gmail Content Script
 // HRREPLY_CONFIG is loaded from config.js (listed before this in manifest)
 
-// Safe wrapper — chrome.runtime becomes undefined in orphaned content scripts
-// (happens when the extension is reloaded while Gmail is still open).
-function sendMsg(payload, callback) {
+// Safe wrapper — handles both orphaned content scripts and sleeping service workers.
+// chrome.runtime.id is undefined when the context is permanently invalidated.
+// lastError with "port closed" / "does not exist" is transient (SW was sleeping) — retry.
+function sendMsg(payload, callback, retries) {
+  const left = retries ?? 3
   try {
-    if (!chrome?.runtime?.sendMessage) {
+    if (!chrome?.runtime?.id) {
       callback({ error: 'reload' })
       return
     }
     chrome.runtime.sendMessage(payload, (res) => {
       if (chrome.runtime?.lastError) {
+        const msg = chrome.runtime.lastError.message || ''
+        if (left > 0 && (
+          msg.includes('port closed') ||
+          msg.includes('does not exist') ||
+          msg.includes('receiving end')
+        )) {
+          setTimeout(() => sendMsg(payload, callback, left - 1), 400)
+          return
+        }
         callback({ error: 'reload' })
         return
       }
