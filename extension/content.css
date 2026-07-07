@@ -1,24 +1,29 @@
 /* HRReply Gmail Extension — injected styles */
 
-/* Compose toolbar button */
+/* Floating button inside the compose text area (top-right corner) */
 .hrreply-compose-btn {
-  display: inline-flex;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 999;
+  width: 30px;
+  height: 30px;
+  background: #1a1a2e;
+  border-radius: 7px;
+  display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  margin: 0 2px;
-  background: #1a1a2e;
-  color: #c8f135;
-  border-radius: 6px;
-  font-size: 10px;
-  font-weight: 800;
   cursor: pointer;
-  letter-spacing: 0.02em;
   user-select: none;
-  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
   transition: opacity 0.15s, transform 0.1s;
-  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.hrreply-compose-btn svg {
+  width: 16px;
+  height: 16px;
+  display: block;
 }
 
 .hrreply-compose-btn:hover {

@@ -80,21 +80,16 @@ function hasSendButton(el) {
   )
 }
 
-function findSendButton(compose) {
-  return (
-    compose.querySelector('[data-tooltip*="Send"]') ||
-    compose.querySelector('[aria-label="Send"]') ||
-    compose.querySelector('[aria-label^="Send "]')
-  )
-}
+// Double-tick SVG — same paths as HRReply favicon.svg
+const LOGO_SVG = `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M20 52 L36 70 L64 32" stroke="#c8f135" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M44 66 L48 70 L78 32" stroke="#ffffff" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`
 
 function injectButton(compose, msgBody) {
-  const sendBtn = findSendButton(compose)
-  if (!sendBtn) return
-
   const btn = document.createElement('div')
   btn.className = 'hrreply-compose-btn'
-  btn.textContent = 'HR'
+  btn.innerHTML = LOGO_SVG
   btn.title = 'Generate with HRReply'
   btn.addEventListener('click', (e) => {
     e.stopPropagation()
@@ -102,28 +97,13 @@ function injectButton(compose, msgBody) {
     togglePanel(msgBody, btn)
   })
 
-  // Gmail puts [data-tooltip] on every toolbar icon button.
-  // The LAST one is always the Discard/trash icon.
-  // Insert HR just before it so it appears on the right side of the toolbar.
-  const allTooltipEls = Array.from(compose.querySelectorAll('[data-tooltip]'))
-  if (allTooltipEls.length > 0) {
-    const lastEl = allTooltipEls[allTooltipEls.length - 1]
-    lastEl.parentElement.insertBefore(btn, lastEl)
-    return
+  // Float the button inside the message body area (top-right corner),
+  // not in Gmail's toolbar — avoids all toolbar DOM fragility.
+  const slot = msgBody.parentElement || compose
+  if (window.getComputedStyle(slot).position === 'static') {
+    slot.style.position = 'relative'
   }
-
-  // Fallback: insert after the Send button's dropdown (▼) sibling
-  const sendParent = sendBtn.parentElement
-  if (sendParent) {
-    const afterSend = sendBtn.nextElementSibling || sendBtn
-    afterSend.insertAdjacentElement('afterend', btn)
-    return
-  }
-
-  // Last resort: overlay on compose, bottom-right
-  compose.style.position = 'relative'
-  btn.style.cssText += ';position:absolute;bottom:10px;right:10px;z-index:9999;'
-  compose.appendChild(btn)
+  slot.appendChild(btn)
 }
 
 // ─── Panel ───────────────────────────────────────────────────────────────────
@@ -187,9 +167,17 @@ function buildPanel() {
 
 function positionPanel(el, anchorBtn) {
   const rect = anchorBtn.getBoundingClientRect()
-  // Position above the compose toolbar, aligned to the right
-  const bottom = window.innerHeight - rect.top + 10
-  el.style.bottom = Math.max(bottom, 10) + 'px'
+  const panelH = 500
+  const gap = 8
+
+  // Show below the button if there's room, otherwise above
+  if (rect.bottom + panelH + gap < window.innerHeight) {
+    el.style.top    = (rect.bottom + gap) + 'px'
+    el.style.bottom = 'auto'
+  } else {
+    el.style.bottom = (window.innerHeight - rect.top + gap) + 'px'
+    el.style.top    = 'auto'
+  }
   el.style.right = '16px'
 }
 
