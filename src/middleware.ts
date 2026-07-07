@@ -34,6 +34,7 @@ export async function middleware(request: NextRequest) {
     pathname === '/robots.txt' ||
     pathname === '/sitemap.xml' ||
     pathname.startsWith('/guides') ||
+    pathname.startsWith('/join/') ||
     pathname.startsWith('/api/')
 
   if (!user && !isPublic) {
