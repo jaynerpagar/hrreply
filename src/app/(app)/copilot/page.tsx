@@ -8,8 +8,10 @@ type Role = 'user' | 'assistant'
 interface Message { role: Role; content: string }
 
 const SUGGESTED: string[] = [
+  'Can I legally ask a candidate their current or expected salary in India?',
+  'Generate 10 interview questions for a Senior Product Manager role',
   'How do I politely follow up with a candidate who ghosted me?',
-  'Write a WhatsApp message for a candidate asking to reschedule',
+  'What are the notice period rules under Indian labour law?',
   'How should I handle a candidate who received a counter-offer?',
   'Draft a rejection email that keeps the door open for future roles',
   "What's the best way to discuss CTC correction after an offer is made?",

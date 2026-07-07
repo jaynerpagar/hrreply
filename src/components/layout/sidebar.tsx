@@ -7,14 +7,15 @@ import type { User } from '@supabase/supabase-js'
 import { cn } from '@/lib/utils'
 import { Logo } from '@/components/ui/logo'
 import { createClient } from '@/lib/supabase/client'
-import { LayoutDashboard, Wand2, BookOpen, History, Users, Settings, CreditCard, Menu, X, LogOut, Bot, Sparkles, Zap, Brain, BarChart2, FileSpreadsheet, UsersRound, Plug } from 'lucide-react'
+import { LayoutDashboard, Wand2, BookOpen, History, Users, Settings, CreditCard, Menu, X, LogOut, Bot, Sparkles, Zap, Brain, BarChart2, FileSpreadsheet, UsersRound, Plug, FileText } from 'lucide-react'
 
 const NAV = [
   { href: '/dashboard',    label: 'Dashboard',            icon: LayoutDashboard  },
   { href: '/generator',   label: 'Reply generator',       icon: Wand2            },
   { href: '/outreach',    label: 'Personalized outreach', icon: Sparkles         },
   { href: '/automation',  label: 'HR Automation',         icon: Zap              },
-  { href: '/copilot',     label: 'HR Copilot',            icon: Bot              },
+  { href: '/copilot',      label: 'HR Copilot',            icon: Bot              },
+  { href: '/hr-documents', label: 'HR Documents',          icon: FileText         },
   { href: '/templates',   label: 'Templates',             icon: BookOpen         },
   { href: '/bulk',        label: 'Bulk Messages',         icon: FileSpreadsheet  },
   { href: '/analyze',     label: 'Message Intelligence',  icon: Brain            },
