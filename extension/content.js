@@ -82,34 +82,28 @@ function injectButton(compose, msgBody) {
     togglePanel(msgBody, btn)
   })
 
-  // Prefer inserting before the Discard button (right side of toolbar)
-  const discardBtn =
-    compose.querySelector('[data-tooltip*="Discard"]') ||
-    compose.querySelector('[aria-label*="Discard"]') ||
-    compose.querySelector('[data-tooltip*="discard"]')
-
-  if (discardBtn) {
-    discardBtn.parentElement.insertBefore(btn, discardBtn)
+  // Gmail puts [data-tooltip] on every toolbar icon button.
+  // The LAST one is always the Discard/trash icon.
+  // Insert HR just before it so it appears on the right side of the toolbar.
+  const allTooltipEls = Array.from(compose.querySelectorAll('[data-tooltip]'))
+  if (allTooltipEls.length > 0) {
+    const lastEl = allTooltipEls[allTooltipEls.length - 1]
+    lastEl.parentElement.insertBefore(btn, lastEl)
     return
   }
 
-  // Fallback: find the "More options" button (⋮) on the right side
-  const moreBtn =
-    compose.querySelector('[data-tooltip*="More options"]') ||
-    compose.querySelector('[aria-label*="More options"]')
-
-  if (moreBtn) {
-    moreBtn.parentElement.insertBefore(btn, moreBtn)
+  // Fallback: insert after the Send button's dropdown (▼) sibling
+  const sendParent = sendBtn.parentElement
+  if (sendParent) {
+    const afterSend = sendBtn.nextElementSibling || sendBtn
+    afterSend.insertAdjacentElement('afterend', btn)
     return
   }
 
-  // Last resort: append to the send button's grandparent toolbar row
-  const toolbar = sendBtn.closest('td')?.parentElement ||
-                  sendBtn.closest('[role="toolbar"]') ||
-                  sendBtn.parentElement?.parentElement
-  if (toolbar) {
-    toolbar.appendChild(btn)
-  }
+  // Last resort: overlay on compose, bottom-right
+  compose.style.position = 'relative'
+  btn.style.cssText += ';position:absolute;bottom:10px;right:10px;z-index:9999;'
+  compose.appendChild(btn)
 }
 
 // ─── Panel ───────────────────────────────────────────────────────────────────
@@ -130,18 +124,30 @@ function togglePanel(msgBody, anchorBtn) {
   positionPanel(panel, anchorBtn)
   document.body.appendChild(panel)
 
-  // Check auth via background worker
-  chrome.runtime.sendMessage({ type: 'GET_USER' }, (user) => {
-    if (chrome.runtime.lastError) {
-      renderAuthPrompt()
-      return
-    }
-    if (!user) {
-      renderAuthPrompt()
-    } else {
-      renderForm()
-    }
-  })
+  // If background SW doesn't respond within 4s, fall through to auth form
+  const swTimeout = setTimeout(() => {
+    if (panel) renderAuthPrompt()
+  }, 4000)
+
+  try {
+    chrome.runtime.sendMessage({ type: 'GET_USER' }, (user) => {
+      clearTimeout(swTimeout)
+      if (chrome.runtime.lastError) {
+        // Background SW unavailable — show auth form
+        if (panel) renderAuthPrompt()
+        return
+      }
+      if (!user) {
+        renderAuthPrompt()
+      } else {
+        renderForm()
+      }
+    })
+  } catch {
+    // Extension context invalidated (e.g. extension was just reloaded)
+    clearTimeout(swTimeout)
+    if (panel) setContent('<div class="hrp-auth"><p>Reload Gmail to activate HRReply.</p></div>')
+  }
 }
 
 function buildPanel() {
