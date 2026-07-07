@@ -8,7 +8,7 @@ export default async function HistoryPage() {
 
   const { data: replies } = await supabase
     .from('replies')
-    .select('id, reply_type, tone, context_input, generated_text, created_at')
+    .select('id, reply_type, tone, context_input, generated_text, created_at, outcome')
     .eq('user_id', user?.id ?? '')
     .order('created_at', { ascending: false })
     .limit(100)

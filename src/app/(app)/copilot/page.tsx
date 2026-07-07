@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Bot, Send, Trash2, Sparkles, Mic, MicOff, Paperclip, Loader2 } from 'lucide-react'
+import { Bot, Send, Trash2, Sparkles, Mic, MicOff, Paperclip, Loader2, Copy, Check, HelpCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type Role = 'user' | 'assistant'
@@ -18,7 +18,128 @@ const SUGGESTED: string[] = [
   'How do I respond to a candidate asking for remote work?',
 ]
 
+const FAQ_CHIPS: string[] = [
+  'What is the work mode (remote/hybrid/office)?',
+  'What is the notice period required?',
+  'What is the salary range for this role?',
+  'What are the benefits and perks?',
+  'Where is the office located?',
+  'What does the interview process look like?',
+  'How long does the hiring decision take?',
+  'Is relocation assistance provided?',
+]
+
+// ── FAQ Tab (#77 Candidate FAQ Auto-Reply) ────────────────────────────────────
+
+function FAQTab() {
+  const [companyContext, setCompanyContext] = useState('')
+  const [question,       setQuestion]      = useState('')
+  const [answer,         setAnswer]        = useState('')
+  const [loading,        setLoading]       = useState(false)
+  const [copied,         setCopied]        = useState(false)
+  const [error,          setError]         = useState('')
+
+  async function generate() {
+    if (!question.trim()) return
+    setLoading(true); setError(''); setAnswer('')
+    try {
+      const res  = await fetch('/api/faq-generator', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question, companyContext }),
+      })
+      const data = await res.json()
+      if (res.ok) setAnswer(data.answer)
+      else setError(data.error ?? 'Something went wrong')
+    } catch { setError('Network error') }
+    finally { setLoading(false) }
+  }
+
+  function copy() {
+    navigator.clipboard.writeText(answer)
+    setCopied(true); setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <div className="flex-1 overflow-y-auto flex flex-col gap-4 pb-4">
+      {/* Company context */}
+      <div className="bg-surface-card border border-surface-border rounded-xl p-4">
+        <p className="text-xs font-bold text-ink-muted uppercase tracking-widest mb-2">Company context <span className="font-normal normal-case">(optional — improves answers)</span></p>
+        <textarea
+          rows={4}
+          value={companyContext}
+          onChange={e => setCompanyContext(e.target.value)}
+          placeholder={"Work mode: Hybrid (3 days office, 2 days WFH)\nLocation: Bangalore, HSR Layout\nNotice period: 30 days or buyout negotiable\nBenefits: Health insurance, 18 days PL, ESOPs after 1 year\nInterview rounds: 2 technical + 1 HR"}
+          className="w-full border border-surface-border rounded-lg px-3 py-2.5 text-sm text-ink bg-surface-sunken placeholder:text-ink-muted resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition leading-relaxed"
+        />
+      </div>
+
+      {/* FAQ chips */}
+      <div>
+        <p className="text-xs font-bold text-ink-muted uppercase tracking-widest mb-2">Common questions</p>
+        <div className="flex flex-wrap gap-2">
+          {FAQ_CHIPS.map(q => (
+            <button key={q} onClick={() => setQuestion(q)}
+              className={cn(
+                'text-xs px-3 py-1.5 rounded-full border transition-all',
+                question === q
+                  ? 'border-primary bg-primary-soft text-primary-deep font-semibold'
+                  : 'border-surface-border text-ink-secondary hover:border-primary hover:text-ink bg-surface-card'
+              )}>
+              {q}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Question input */}
+      <div>
+        <p className="text-xs font-bold text-ink-muted uppercase tracking-widest mb-2">Or type a custom question</p>
+        <textarea
+          rows={2}
+          value={question}
+          onChange={e => setQuestion(e.target.value)}
+          placeholder='e.g. "Do you offer stock options?" or "Can I work remotely full-time?"'
+          className="w-full border border-surface-border rounded-lg px-3 py-2.5 text-sm text-ink bg-surface-card placeholder:text-ink-muted resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition leading-relaxed"
+        />
+        <button
+          onClick={generate}
+          disabled={!question.trim() || loading}
+          className="mt-2 flex items-center gap-1.5 px-4 py-2 rounded-lg bg-accent text-primary text-sm font-bold hover:bg-accent-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {loading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Generating…</> : <><HelpCircle className="w-3.5 h-3.5" />Generate answer</>}
+        </button>
+      </div>
+
+      {error && <p className="text-sm text-status-droppedText bg-status-droppedBg rounded-lg px-3 py-2">{error}</p>}
+
+      {/* Answer output */}
+      {answer && (
+        <div className="bg-surface-card border border-surface-border rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-surface-border flex items-center justify-between">
+            <p className="text-sm font-bold text-ink">Candidate FAQ answer</p>
+            <button onClick={copy} className={cn(
+              'flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg border transition-all',
+              copied ? 'border-accent bg-accent-soft text-accent-text' : 'border-surface-border text-ink-muted hover:text-primary'
+            )}>
+              {copied ? <><Check className="w-3 h-3" />Copied</> : <><Copy className="w-3 h-3" />Copy</>}
+            </button>
+          </div>
+          <div className="p-4 bg-accent-soft">
+            <p className="text-sm text-ink leading-relaxed">{answer}</p>
+          </div>
+          <div className="px-4 py-2 bg-surface-page border-t border-surface-border">
+            <p className="text-[11px] text-ink-muted">💡 Paste this directly into WhatsApp, email, or LinkedIn — no editing needed.</p>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Chat component ────────────────────────────────────────────────────────────
+
 export default function CopilotPage() {
+  const [tab,        setTab]        = useState<'chat' | 'faq'>('chat')
   const [messages,   setMessages]   = useState<Message[]>([])
   const [input,      setInput]      = useState('')
   const [loading,    setLoading]    = useState(false)
@@ -109,7 +230,7 @@ export default function CopilotPage() {
     <div className="flex flex-col h-[calc(100vh-4rem)] lg:h-[calc(100vh-2rem)] max-w-3xl mx-auto">
 
       {/* Header */}
-      <div className="flex items-center justify-between pb-4 shrink-0">
+      <div className="flex items-center justify-between pb-3 shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
             <Bot className="w-5 h-5 text-accent" />
@@ -119,7 +240,7 @@ export default function CopilotPage() {
             <p className="text-xs text-ink-muted">Ask anything about candidate communication or Indian HR practices</p>
           </div>
         </div>
-        {!isEmpty && (
+        {tab === 'chat' && !isEmpty && (
           <button
             onClick={() => setMessages([])}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-surface-border text-xs font-semibold text-ink-secondary hover:text-status-droppedText hover:border-status-dropped/30 transition-colors"
@@ -129,8 +250,27 @@ export default function CopilotPage() {
         )}
       </div>
 
+      {/* Tab switcher */}
+      <div className="flex gap-1 p-1 bg-surface-sunken border border-surface-border rounded-xl mb-4 w-fit shrink-0">
+        <button onClick={() => setTab('chat')} className={cn(
+          'flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all',
+          tab === 'chat' ? 'bg-surface-card text-ink shadow-sm border border-surface-border' : 'text-ink-muted hover:text-ink'
+        )}>
+          <Bot className="w-3.5 h-3.5" /> AI Chat
+        </button>
+        <button onClick={() => setTab('faq')} className={cn(
+          'flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all',
+          tab === 'faq' ? 'bg-surface-card text-ink shadow-sm border border-surface-border' : 'text-ink-muted hover:text-ink'
+        )}>
+          <HelpCircle className="w-3.5 h-3.5" /> Candidate FAQ
+        </button>
+      </div>
+
+      {/* FAQ tab */}
+      {tab === 'faq' && <FAQTab />}
+
       {/* Messages area */}
-      <div className="flex-1 overflow-y-auto pb-4 space-y-4">
+      {tab === 'chat' && <div className="flex-1 overflow-y-auto pb-4 space-y-4">
 
         {/* Empty state with suggested prompts */}
         {isEmpty && (
@@ -196,10 +336,10 @@ export default function CopilotPage() {
         )}
 
         <div ref={bottomRef} />
-      </div>
+      </div>}
 
-      {/* Input area */}
-      <div className="shrink-0 pt-3 border-t border-surface-border">
+      {/* Input area — chat only */}
+      {tab === 'chat' && <div className="shrink-0 pt-3 border-t border-surface-border">
         <div className="flex items-end gap-2 bg-surface-card border border-surface-border rounded-2xl px-4 py-3 shadow-sm focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all">
           {/* PDF upload */}
           <label className={cn('flex-shrink-0 cursor-pointer text-ink-muted hover:text-primary transition-colors', (pdfLoading || loading) && 'opacity-40 pointer-events-none')} title="Upload PDF document">
@@ -237,7 +377,7 @@ export default function CopilotPage() {
         <p className="text-center text-[11px] text-ink-muted mt-2">
           HR Copilot gives advice, not legal counsel. Use your judgement for complex situations.
         </p>
-      </div>
+      </div>}
     </div>
   )
 }

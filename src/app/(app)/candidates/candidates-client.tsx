@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import {
   Search, Plus, Pencil, Trash2, X, Phone, Briefcase,
-  ChevronDown, Sparkles, Zap, Wand2, Brain, Loader2, AlertTriangle,
+  ChevronDown, Sparkles, Zap, Wand2, Brain, Loader2, AlertTriangle, History, Copy, Check,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -250,6 +250,31 @@ const FILTER_STAGES: { value: Stage | 'all'; label: string }[] = [
 
 // ── Main client ────────────────────────────────────────────────────────────
 
+interface TimelineReply {
+  id: string
+  reply_type: string
+  tone: string
+  generated_text: string
+  created_at: string
+  outcome: string | null
+}
+
+const REPLY_TYPE_LABELS: Record<string, string> = {
+  interview_invite: 'Interview Invite', shortlist: 'Shortlist', offer: 'Offer Letter',
+  rejection: 'Rejection', reschedule: 'Reschedule', no_show: 'No Show',
+  follow_up: 'Follow-up', salary_negotiation: 'Salary Negotiation',
+  joining_confirmation: 'Joining', thank_you: 'Thank You',
+  interview_reminder: 'Interview Reminder', document_collection: 'Document Collect',
+  onboarding: 'Onboarding', welcome: 'Welcome', exit_interview: 'Exit Interview',
+}
+
+const OUTCOME_LABELS: Record<string, { label: string; color: string }> = {
+  got_reply: { label: 'Got reply',  color: 'text-status-placedText bg-status-placedBg' },
+  no_reply:  { label: 'No reply',   color: 'text-status-droppedText bg-status-droppedBg' },
+  accepted:  { label: 'Accepted',   color: 'text-accent-text bg-accent-soft' },
+  declined:  { label: 'Declined',   color: 'text-status-processText bg-status-processBg' },
+}
+
 export default function CandidatesClient({ initial }: { initial: Candidate[] }) {
   const [candidates, setCandidates] = useState<Candidate[]>(initial)
   const [search, setSearch]         = useState('')
@@ -258,6 +283,29 @@ export default function CandidatesClient({ initial }: { initial: Candidate[] }) 
   const [editing, setEditing]       = useState<Candidate | null>(null)
   const [deleting, setDeleting]     = useState<string | null>(null)
   const [insights, setInsights]     = useState<Record<string, InsightData | 'loading' | 'error'>>({})
+  // Timeline state (#72)
+  const [timelineCandidate, setTimelineCandidate] = useState<Candidate | null>(null)
+  const [timelineReplies,   setTimelineReplies]   = useState<TimelineReply[]>([])
+  const [timelineLoading,   setTimelineLoading]   = useState(false)
+  const [copiedTimelineId,  setCopiedTimelineId]  = useState<string | null>(null)
+
+  async function openTimeline(c: Candidate) {
+    setTimelineCandidate(c)
+    setTimelineReplies([])
+    setTimelineLoading(true)
+    try {
+      const res  = await fetch(`/api/candidates/${c.id}/replies`)
+      const data = await res.json()
+      if (res.ok && Array.isArray(data)) setTimelineReplies(data)
+    } catch {/* ignore */}
+    finally { setTimelineLoading(false) }
+  }
+
+  function copyTimeline(id: string, text: string) {
+    navigator.clipboard.writeText(text)
+    setCopiedTimelineId(id)
+    setTimeout(() => setCopiedTimelineId(null), 2000)
+  }
 
   async function fetchInsight(c: Candidate) {
     if (insights[c.id] && insights[c.id] !== 'error') return
@@ -487,6 +535,14 @@ export default function CandidatesClient({ initial }: { initial: Candidate[] }) 
                           >
                             <Wand2 className="w-3.5 h-3.5" />
                           </a>
+                          {/* Timeline (#72) */}
+                          <button
+                            onClick={() => openTimeline(c)}
+                            title="Communication timeline"
+                            className="p-1.5 rounded text-ink-muted hover:text-primary hover:bg-primary-soft transition-colors"
+                          >
+                            <History className="w-3.5 h-3.5" />
+                          </button>
                           {/* Personalized outreach */}
                           <a
                             href={`/outreach?candidateId=${c.id}`}
@@ -545,10 +601,103 @@ export default function CandidatesClient({ initial }: { initial: Candidate[] }) 
               </tbody>
             </table>
           </div>
-          <div className="px-4 py-2.5 border-t border-surface-border text-xs text-ink-muted">
-            {filtered.length} of {candidates.length} candidate{candidates.length !== 1 ? 's' : ''}
+          <div className="px-4 py-2.5 border-t border-surface-border text-xs text-ink-muted flex items-center justify-between">
+            <span>{filtered.length} of {candidates.length} candidate{candidates.length !== 1 ? 's' : ''}</span>
           </div>
         </div>
+      )}
+
+      {/* ── Timeline slide-over (#72) ─────────────────────────────────── */}
+      {timelineCandidate && (
+        <>
+          <div className="fixed inset-0 z-40 bg-ink/40 backdrop-blur-sm" onClick={() => setTimelineCandidate(null)} />
+          <div className="fixed top-0 right-0 z-50 h-full w-full max-w-md bg-surface-card shadow-2xl flex flex-col">
+            {/* Header */}
+            <div className="px-5 py-4 border-b border-surface-border flex items-center justify-between shrink-0">
+              <div>
+                <div className="flex items-center gap-2">
+                  <History className="w-4 h-4 text-primary" />
+                  <p className="text-sm font-bold text-ink">Communication Timeline</p>
+                </div>
+                <p className="text-xs text-ink-muted mt-0.5">{timelineCandidate.name} · {timelineCandidate.role_applied}</p>
+              </div>
+              <button onClick={() => setTimelineCandidate(null)} className="p-1 rounded text-ink-muted hover:text-ink transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Timeline body */}
+            <div className="flex-1 overflow-y-auto px-5 py-4">
+              {timelineLoading && (
+                <div className="flex items-center justify-center py-16 gap-2 text-ink-muted">
+                  <Loader2 className="w-4 h-4 animate-spin" /> Loading timeline…
+                </div>
+              )}
+              {!timelineLoading && timelineReplies.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
+                  <History className="w-8 h-8 text-ink-muted/30" />
+                  <p className="text-sm font-semibold text-ink">No messages sent yet</p>
+                  <p className="text-xs text-ink-muted">Generate a reply for this candidate and select them in the Candidate context — it will appear here.</p>
+                </div>
+              )}
+              {!timelineLoading && timelineReplies.length > 0 && (
+                <div className="relative">
+                  {/* Vertical line */}
+                  <div className="absolute left-3 top-3 bottom-3 w-px bg-surface-border" />
+                  <div className="flex flex-col gap-4">
+                    {timelineReplies.map((reply) => {
+                      const outcome = reply.outcome ? OUTCOME_LABELS[reply.outcome] : null
+                      return (
+                        <div key={reply.id} className="flex gap-4">
+                          <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center shrink-0 z-10 mt-0.5">
+                            <span className="w-2 h-2 rounded-full bg-accent" />
+                          </div>
+                          <div className="flex-1 min-w-0 pb-2">
+                            <div className="flex items-center justify-between gap-2 mb-1">
+                              <span className="text-xs font-bold text-ink">
+                                {REPLY_TYPE_LABELS[reply.reply_type] ?? reply.reply_type}
+                              </span>
+                              <span className="text-[11px] text-ink-muted shrink-0">
+                                {new Date(reply.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                              </span>
+                            </div>
+                            <div className="bg-surface-sunken border border-surface-border rounded-lg p-3 group relative">
+                              <p className="text-xs text-ink leading-relaxed line-clamp-4">{reply.generated_text}</p>
+                              <button
+                                onClick={() => copyTimeline(reply.id, reply.generated_text)}
+                                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded bg-surface-card border border-surface-border text-ink-muted hover:text-primary"
+                              >
+                                {copiedTimelineId === reply.id ? <Check className="w-3 h-3 text-status-placed" /> : <Copy className="w-3 h-3" />}
+                              </button>
+                            </div>
+                            <div className="flex items-center gap-2 mt-1.5">
+                              <span className="text-[10px] text-ink-muted capitalize">{reply.tone}</span>
+                              {outcome && (
+                                <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-full', outcome.color)}>
+                                  {outcome.label}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-5 py-3 border-t border-surface-border shrink-0">
+              <a
+                href={`/generator?candidateId=${timelineCandidate.id}`}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-accent text-primary text-sm font-bold hover:bg-accent-hover transition-colors"
+              >
+                <Wand2 className="w-4 h-4" /> Generate next message
+              </a>
+            </div>
+          </div>
+        </>
       )}
     </>
   )
