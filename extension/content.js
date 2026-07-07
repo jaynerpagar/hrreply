@@ -135,22 +135,14 @@ function togglePanel(msgBody, anchorBtn) {
   positionPanel(panel, anchorBtn)
   document.body.appendChild(panel)
 
-  // If background SW doesn't respond within 4s, fall through to auth form
-  const swTimeout = setTimeout(() => {
-    if (panel) renderAuthPrompt()
-  }, 4000)
-
-  sendMsg({ type: 'GET_USER' }, (res) => {
-    clearTimeout(swTimeout)
+  // Read auth state directly from storage — no SW needed for this check.
+  // SW is only needed for LOGIN and GENERATE calls (where it's already awake by then).
+  chrome.storage.local.get(['access_token'], (data) => {
     if (!panel) return
-    if (res?.error === 'reload') {
-      setContent('<div class="hrp-auth"><p style="text-align:center;color:#374151;font-size:13px;">Please reload Gmail to reactivate HRReply.</p></div>')
-      return
-    }
-    if (!res) {
-      renderAuthPrompt()
-    } else {
+    if (data.access_token) {
       renderForm()
+    } else {
+      renderAuthPrompt()
     }
   })
 }
