@@ -363,7 +363,7 @@ function AutomationContent() {
         <p className="text-sm text-ink-secondary mt-0.5">Auto-generate follow-ups, reminders, and sequences — triggered by candidate stage.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[420px_1fr] gap-5 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-[420px_minmax(0,1fr)] gap-5 items-start">
 
         {/* ══ LEFT PANE ═══════════════════════════════════════════════════ */}
         <div className="flex flex-col gap-4">
@@ -469,7 +469,7 @@ function AutomationContent() {
         </div>
 
         {/* ══ RIGHT PANE ══════════════════════════════════════════════════ */}
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 min-w-0">
 
           {error && (
             <div className="bg-status-droppedBg border border-status-dropped/30 rounded-xl px-4 py-3 text-sm text-status-droppedText">

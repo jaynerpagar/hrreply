@@ -162,7 +162,7 @@ export default function HRDocumentsPage() {
         <p className="text-sm text-ink-secondary mt-0.5">Generate formal HR documents — offer letters, policies, JDs, and more.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[420px_1fr] gap-5 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-[420px_minmax(0,1fr)] gap-5 items-start">
 
         {/* ══ LEFT PANE ══════════════════════════════════════════════════════ */}
         <div className="bg-surface-card border border-surface-border rounded-xl shadow-card overflow-hidden">
@@ -252,7 +252,7 @@ export default function HRDocumentsPage() {
         </div>
 
         {/* ══ RIGHT PANE ═════════════════════════════════════════════════════ */}
-        <div className="bg-surface-card border border-surface-border rounded-xl shadow-card min-h-[500px] flex flex-col">
+        <div className="bg-surface-card border border-surface-border rounded-xl shadow-card min-h-[500px] flex flex-col min-w-0">
 
           {/* Output header */}
           {output && (
