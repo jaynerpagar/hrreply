@@ -637,17 +637,17 @@ function GeneratorContent() {
   ]
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col lg:h-full">
       <UpsellModal open={showUpsell} onClose={() => setShowUpsell(false)} reason="limit_reached" />
 
       {/* Page header */}
-      <div className="mb-5">
+      <div className="mb-5 shrink-0">
         <h1 className="text-xl font-bold text-ink tracking-tight">Reply Generator</h1>
         <p className="text-sm text-ink-secondary mt-0.5">Compose from scratch, reply to a message, analyse a thread, or use a guided scenario.</p>
       </div>
 
       {/* Mode toggle — 4 modes */}
-      <div className="flex gap-1 p-1 bg-surface-sunken border border-surface-border rounded-xl mb-5 overflow-x-auto">
+      <div className="flex gap-1 p-1 bg-surface-sunken border border-surface-border rounded-xl mb-5 overflow-x-auto shrink-0">
         {MODES.map(({ value, Icon, label }) => (
           <button
             key={value}
@@ -665,10 +665,10 @@ function GeneratorContent() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[420px_minmax(0,1fr)] gap-5 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-[420px_minmax(0,1fr)] gap-5 lg:flex-1 lg:min-h-0">
 
         {/* ══ LEFT PANE ══════════════════════════════════════════════════════ */}
-        <div>
+        <div className="lg:overflow-y-auto lg:pr-1">
 
           {/* ── COMPOSE MODE ─────────────────────────────────────────────── */}
           {mode === 'compose' && (
@@ -976,7 +976,7 @@ function GeneratorContent() {
         </div>
 
         {/* ══ RIGHT PANE ═════════════════════════════════════════════════════ */}
-        <div className="flex flex-col gap-4 min-w-0">
+        <div className="flex flex-col gap-4 min-w-0 lg:overflow-y-auto lg:pr-1">
 
           {error && (
             <div className="bg-status-droppedBg border border-status-dropped/30 rounded-xl px-4 py-3 text-sm text-status-droppedText">{error}</div>

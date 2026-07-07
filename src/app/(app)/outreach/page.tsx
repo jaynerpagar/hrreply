@@ -476,19 +476,19 @@ function OutreachContent() {
   const canGenerate = !!(candidate.name || candidate.skills?.length || job.title || job.requiredSkills?.length)
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col lg:h-full">
       <UpsellModal open={showUpsell} onClose={() => setShowUpsell(false)} reason="limit_reached" />
 
       {/* Header */}
-      <div className="mb-5">
+      <div className="mb-5 shrink-0">
         <h1 className="text-xl font-bold text-ink tracking-tight">Personalized Outreach</h1>
         <p className="text-sm text-ink-secondary mt-0.5">Upload a resume or paste a JD — AI writes outreach that references the candidate&apos;s actual skills.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[420px_minmax(0,1fr)] gap-5 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-[420px_minmax(0,1fr)] gap-5 lg:flex-1 lg:min-h-0">
 
         {/* ══ LEFT PANE ═══════════════════════════════════════════════════ */}
-        <div className="bg-surface-card border border-surface-border rounded-xl shadow-card overflow-hidden">
+        <div className="bg-surface-card border border-surface-border rounded-xl shadow-card overflow-hidden lg:overflow-y-auto">
 
           {/* ── CANDIDATE ────────────────────────────────────────────────── */}
           <Section
@@ -697,7 +697,7 @@ function OutreachContent() {
         </div>
 
         {/* ══ RIGHT PANE ══════════════════════════════════════════════════ */}
-        <div className="flex flex-col gap-4 min-w-0">
+        <div className="flex flex-col gap-4 min-w-0 lg:overflow-y-auto lg:pr-1">
 
           {error && (
             <div className="bg-status-droppedBg border border-status-dropped/30 rounded-xl px-4 py-3 text-sm text-status-droppedText flex items-start gap-2">
