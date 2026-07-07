@@ -1,6 +1,26 @@
 // HRReply Gmail Content Script
 // HRREPLY_CONFIG is loaded from config.js (listed before this in manifest)
 
+// Safe wrapper — chrome.runtime becomes undefined in orphaned content scripts
+// (happens when the extension is reloaded while Gmail is still open).
+function sendMsg(payload, callback) {
+  try {
+    if (!chrome?.runtime?.sendMessage) {
+      callback({ error: 'reload' })
+      return
+    }
+    chrome.runtime.sendMessage(payload, (res) => {
+      if (chrome.runtime?.lastError) {
+        callback({ error: 'reload' })
+        return
+      }
+      callback(res ?? { error: 'reload' })
+    })
+  } catch {
+    callback({ error: 'reload' })
+  }
+}
+
 const REPLY_TYPES = [
   { value: 'interview_invite',    label: '📅 Interview Invite' },
   { value: 'interview_reminder',  label: '⏰ Interview Reminder' },
@@ -129,25 +149,19 @@ function togglePanel(msgBody, anchorBtn) {
     if (panel) renderAuthPrompt()
   }, 4000)
 
-  try {
-    chrome.runtime.sendMessage({ type: 'GET_USER' }, (user) => {
-      clearTimeout(swTimeout)
-      if (chrome.runtime.lastError) {
-        // Background SW unavailable — show auth form
-        if (panel) renderAuthPrompt()
-        return
-      }
-      if (!user) {
-        renderAuthPrompt()
-      } else {
-        renderForm()
-      }
-    })
-  } catch {
-    // Extension context invalidated (e.g. extension was just reloaded)
+  sendMsg({ type: 'GET_USER' }, (res) => {
     clearTimeout(swTimeout)
-    if (panel) setContent('<div class="hrp-auth"><p>Reload Gmail to activate HRReply.</p></div>')
-  }
+    if (!panel) return
+    if (res?.error === 'reload') {
+      setContent('<div class="hrp-auth"><p style="text-align:center;color:#374151;font-size:13px;">Please reload Gmail to reactivate HRReply.</p></div>')
+      return
+    }
+    if (!res) {
+      renderAuthPrompt()
+    } else {
+      renderForm()
+    }
+  })
 }
 
 function buildPanel() {
@@ -223,12 +237,12 @@ function renderAuthPrompt(loginError) {
     btn.disabled = true
     btn.innerHTML = '<div class="hrp-spinner" style="margin:0 auto;"></div>'
 
-    chrome.runtime.sendMessage({ type: 'LOGIN', email, password }, (res) => {
-      if (chrome.runtime.lastError || !res) {
-        renderAuthPrompt('Extension error. Please try again.')
+    sendMsg({ type: 'LOGIN', email, password }, (res) => {
+      if (res?.error === 'reload') {
+        renderAuthPrompt('Reload Gmail and try again.')
         return
       }
-      if (res.error) {
+      if (res?.error) {
         renderAuthPrompt(res.error)
         return
       }
@@ -300,7 +314,7 @@ function renderForm(errorMsg) {
 
     renderGenerating()
 
-    chrome.runtime.sendMessage({
+    sendMsg({
       type: 'GENERATE',
       payload: {
         reply_type:    replyType,
@@ -310,11 +324,11 @@ function renderForm(errorMsg) {
         language:      'english',
       },
     }, (res) => {
-      if (chrome.runtime.lastError || !res) {
-        renderForm('Extension error. Try reloading Gmail.')
+      if (res?.error === 'reload') {
+        renderForm('Reload Gmail and try again.')
         return
       }
-      if (res.error) {
+      if (res?.error) {
         if (res.error === 'free_limit_reached' || res.error?.includes('quota') || res.error?.includes('Quota')) {
           renderQuotaError()
         } else {
