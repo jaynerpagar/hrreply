@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HRReply for Gmail</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div class="popup">
+    <!-- Header -->
+    <div class="popup-header">
+      <div class="popup-logo">
+        <span class="logo-mark">✓</span>
+        <span class="logo-text">HRReply</span>
+      </div>
+      <span class="popup-tagline">for Gmail</span>
+    </div>
+
+    <!-- Not logged in -->
+    <div id="view-login" class="view">
+      <p class="login-desc">Sign in to generate HR messages directly inside Gmail.</p>
+      <form id="login-form">
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" type="email" placeholder="you@company.com" required autocomplete="email" />
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" type="password" placeholder="••••••••" required autocomplete="current-password" />
+        </div>
+        <p class="error hidden" id="login-error"></p>
+        <button type="submit" class="btn-primary" id="login-btn">
+          <span id="login-label">Sign in</span>
+          <span id="login-spinner" class="spinner hidden"></span>
+        </button>
+      </form>
+      <a href="https://www.hrreply.in/login" target="_blank" class="signup-link">Don't have an account? Sign up →</a>
+    </div>
+
+    <!-- Logged in -->
+    <div id="view-connected" class="view hidden">
+      <div class="connected-badge">
+        <span class="badge-dot"></span>
+        <span>Connected</span>
+      </div>
+      <p class="user-email" id="user-email"></p>
+      <p class="connected-desc">
+        Open a Gmail compose window and click the <strong>HR</strong> button in the toolbar to generate messages.
+      </p>
+      <a href="https://www.hrreply.in/dashboard" target="_blank" class="btn-outline">Open HRReply →</a>
+      <button class="btn-ghost" id="logout-btn">Sign out</button>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

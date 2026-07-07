@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "HRReply for Gmail",
+  "version": "1.0.0",
+  "description": "Generate professional HR messages directly inside Gmail — powered by HRReply.in",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://mail.google.com/*",
+    "https://www.hrreply.in/*",
+    "https://vfpqftcfimupgdccnrnh.supabase.co/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://mail.google.com/*"],
+      "js": ["config.js", "content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "HRReply for Gmail"
+  }
+}
