@@ -3,7 +3,7 @@
   "name": "HRReply for Gmail",
   "version": "1.0.0",
   "description": "Generate professional HR messages directly inside Gmail — powered by HRReply.in",
-  "permissions": ["storage"],
+  "permissions": ["storage", "identity"],
   "host_permissions": [
     "https://mail.google.com/*",
     "https://www.hrreply.in/*",

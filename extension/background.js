@@ -16,11 +16,64 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     handleGenerate(msg.payload).then(sendResponse)
     return true
   }
+  if (msg.type === 'GOOGLE_LOGIN') {
+    handleGoogleLogin().then(sendResponse)
+    return true
+  }
+  if (msg.type === 'GET_REDIRECT_URL') {
+    sendResponse({ url: chrome.identity.getRedirectURL() })
+  }
   if (msg.type === 'LOGOUT') {
     chrome.storage.local.remove(['access_token', 'refresh_token', 'expires_at', 'user_email'])
     sendResponse({ ok: true })
   }
 })
+
+async function handleGoogleLogin() {
+  try {
+    const redirectUrl = chrome.identity.getRedirectURL()
+    const authUrl = `${SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectUrl)}`
+
+    return new Promise((resolve) => {
+      chrome.identity.launchWebAuthFlow({ url: authUrl, interactive: true }, async (responseUrl) => {
+        if (chrome.runtime.lastError || !responseUrl) {
+          resolve({ error: chrome.runtime.lastError?.message || 'Sign in cancelled.', redirectUrl })
+          return
+        }
+        try {
+          const url = new URL(responseUrl)
+          const params = new URLSearchParams(url.hash.substring(1))
+          const accessToken  = params.get('access_token')
+          const refreshToken = params.get('refresh_token')
+          const expiresIn    = params.get('expires_in')
+
+          if (!accessToken) {
+            resolve({ error: 'Redirect URL not whitelisted in Supabase.', redirectUrl })
+            return
+          }
+
+          const userRes  = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+            headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${accessToken}` },
+          })
+          const userData = await userRes.json()
+          const expiresAt = Math.floor(Date.now() / 1000) + parseInt(expiresIn || '3600')
+
+          await chrome.storage.local.set({
+            access_token:  accessToken,
+            refresh_token: refreshToken,
+            expires_at:    expiresAt,
+            user_email:    userData.email,
+          })
+          resolve({ ok: true, email: userData.email })
+        } catch {
+          resolve({ error: 'Failed to process sign-in response.', redirectUrl })
+        }
+      })
+    })
+  } catch {
+    return { error: 'Google sign in unavailable.', redirectUrl: chrome.identity.getRedirectURL() }
+  }
+}
 
 async function handleLogin(email, password) {
   try {

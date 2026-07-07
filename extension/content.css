@@ -126,6 +126,26 @@
 }
 .hrp-auth-link:hover { opacity: 0.85; }
 
+/* Google sign-in button */
+.hrp-google-btn {
+  width: 100%;
+  padding: 9px 12px;
+  background: #fff;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background 0.15s, border-color 0.15s;
+}
+.hrp-google-btn:hover:not(:disabled) { background: #f9fafb; border-color: #d1d5db; }
+.hrp-google-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
 /* Form */
 .hrp-label {
   display: block;
