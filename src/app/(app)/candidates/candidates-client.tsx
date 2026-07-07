@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import {
   Search, Plus, Pencil, Trash2, X, Phone, Briefcase,
-  ChevronDown, Sparkles, Zap, Wand2,
+  ChevronDown, Sparkles, Zap, Wand2, Brain, Loader2, AlertTriangle,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -211,6 +211,36 @@ function CandidateModal({ candidate, onClose, onSave }: ModalProps) {
   )
 }
 
+// ── AI Insights ────────────────────────────────────────────────────────────
+
+interface InsightData {
+  interest_level:   'high' | 'medium' | 'low'
+  interest_reason:  string
+  ghosting_risk:    'high' | 'medium' | 'low'
+  ghosting_reason:  string
+  joining_probability: number | null
+  joining_reason:   string | null
+}
+
+const INTEREST_STYLE: Record<string, string> = {
+  high:   'text-status-placedText bg-status-placedBg',
+  medium: 'text-status-processText bg-status-processBg',
+  low:    'text-status-droppedText bg-status-droppedBg',
+}
+
+const RISK_STYLE: Record<string, string> = {
+  high:   'text-status-droppedText bg-status-droppedBg',
+  medium: 'text-status-processText bg-status-processBg',
+  low:    'text-status-placedText bg-status-placedBg',
+}
+
+const ACTIVE_STAGES = new Set<Stage>(['screening', 'shortlisted', 'interview_scheduled', 'interviewed', 'offer_sent'])
+
+function ghostingDays(c: Candidate): number {
+  const ref = c.last_contacted_at ?? c.created_at
+  return Math.floor((Date.now() - new Date(ref).getTime()) / (1000 * 60 * 60 * 24))
+}
+
 // ── Filter bar ─────────────────────────────────────────────────────────────
 
 const FILTER_STAGES: { value: Stage | 'all'; label: string }[] = [
@@ -227,6 +257,23 @@ export default function CandidatesClient({ initial }: { initial: Candidate[] }) 
   const [modal, setModal]           = useState<'add' | 'edit' | null>(null)
   const [editing, setEditing]       = useState<Candidate | null>(null)
   const [deleting, setDeleting]     = useState<string | null>(null)
+  const [insights, setInsights]     = useState<Record<string, InsightData | 'loading' | 'error'>>({})
+
+  async function fetchInsight(c: Candidate) {
+    if (insights[c.id] && insights[c.id] !== 'error') return
+    setInsights(prev => ({ ...prev, [c.id]: 'loading' }))
+    try {
+      const res  = await fetch('/api/ai-insights/predict', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(c),
+      })
+      const data = await res.json()
+      setInsights(prev => ({ ...prev, [c.id]: res.ok ? data : 'error' }))
+    } catch {
+      setInsights(prev => ({ ...prev, [c.id]: 'error' }))
+    }
+  }
 
   const filtered = useMemo(() => candidates.filter(c => {
     const matchSearch = !search ||
@@ -345,6 +392,10 @@ export default function CandidatesClient({ initial }: { initial: Candidate[] }) 
                     ? new Date(c.joining_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
                     : null
 
+                  const insight      = insights[c.id]
+                  const days         = ghostingDays(c)
+                  const heuristicGhost = ACTIVE_STAGES.has(c.stage) && days >= 5
+
                   return (
                     <tr key={c.id} className="hover:bg-surface-sunken/50 transition-colors">
                       <td className="px-4 py-3">
@@ -384,8 +435,45 @@ export default function CandidatesClient({ initial }: { initial: Candidate[] }) 
                               Joining: {joiningLabel}
                             </span>
                           )}
-                          {!c.current_company && !interviewLabel && !joiningLabel && (
+                          {!c.current_company && !interviewLabel && !joiningLabel && insight !== 'loading' && typeof insight !== 'object' && (
                             <span className="text-xs text-ink-muted">{c.notes ? c.notes.slice(0, 40) + (c.notes.length > 40 ? '…' : '') : '—'}</span>
+                          )}
+                          {/* Heuristic ghosting warning */}
+                          {heuristicGhost && typeof insight !== 'object' && (
+                            <span className="inline-flex items-center gap-1 text-[11px] text-status-droppedText bg-status-droppedBg rounded-full px-2 py-0.5 w-fit">
+                              <AlertTriangle className="w-2.5 h-2.5" /> No contact {days}d
+                            </span>
+                          )}
+                          {/* AI insight chips */}
+                          {insight === 'loading' && (
+                            <span className="inline-flex items-center gap-1 text-[11px] text-ink-muted">
+                              <Loader2 className="w-2.5 h-2.5 animate-spin" /> Analyzing…
+                            </span>
+                          )}
+                          {typeof insight === 'object' && (
+                            <>
+                              <span className={cn('inline-flex items-center gap-1 text-[11px] rounded-full px-2 py-0.5 w-fit font-medium', INTEREST_STYLE[insight.interest_level])}
+                                title={insight.interest_reason}>
+                                ✦ {insight.interest_level === 'high' ? 'High interest' : insight.interest_level === 'medium' ? 'Medium interest' : 'Low interest'}
+                              </span>
+                              {insight.ghosting_risk === 'high' && (
+                                <span className={cn('inline-flex items-center gap-1 text-[11px] rounded-full px-2 py-0.5 w-fit font-medium', RISK_STYLE.high)}
+                                  title={insight.ghosting_reason}>
+                                  <AlertTriangle className="w-2.5 h-2.5" /> Ghosting risk
+                                </span>
+                              )}
+                              {insight.joining_probability !== null && (
+                                <span className={cn('inline-flex items-center gap-1 text-[11px] rounded-full px-2 py-0.5 w-fit font-medium',
+                                  insight.joining_probability >= 70 ? INTEREST_STYLE.high :
+                                  insight.joining_probability >= 40 ? INTEREST_STYLE.medium : INTEREST_STYLE.low)}
+                                  title={insight.joining_reason ?? ''}>
+                                  {insight.joining_probability}% joining
+                                </span>
+                              )}
+                            </>
+                          )}
+                          {insight === 'error' && (
+                            <span className="text-[11px] text-ink-muted">AI unavailable</span>
                           )}
                         </div>
                       </td>
@@ -415,6 +503,23 @@ export default function CandidatesClient({ initial }: { initial: Candidate[] }) 
                           >
                             <Zap className="w-3.5 h-3.5" />
                           </a>
+                          {/* AI Insights */}
+                          <button
+                            onClick={() => fetchInsight(c)}
+                            title="AI insights"
+                            disabled={insight === 'loading'}
+                            className={cn(
+                              'p-1.5 rounded transition-colors',
+                              typeof insight === 'object'
+                                ? 'text-accent-text bg-accent-soft'
+                                : 'text-ink-muted hover:text-accent-text hover:bg-accent-soft'
+                            )}
+                          >
+                            {insight === 'loading'
+                              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              : <Brain className="w-3.5 h-3.5" />
+                            }
+                          </button>
                           {/* Edit */}
                           <button
                             onClick={() => { setEditing(c); setModal('edit') }}

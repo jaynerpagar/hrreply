@@ -56,6 +56,7 @@ type FieldId =
   | 'candidateName' | 'role' | 'round' | 'date' | 'time' | 'platform'
   | 'interviewer' | 'ctc' | 'joiningDate' | 'location' | 'documents'
   | 'manager' | 'department' | 'lastWorkingDay'
+  | 'candidateDemand' | 'budgetCeiling' | 'negotiationStance'
 
 interface FieldDef { label: string; placeholder: string; wide?: boolean }
 
@@ -73,7 +74,10 @@ const FIELD_DEFS: Record<FieldId, FieldDef> = {
   documents:      { label: 'Documents needed',  placeholder: 'e.g. Aadhaar, last 3 payslips', wide: true },
   manager:        { label: 'Reporting manager', placeholder: 'e.g. Anita Kapoor (VP HR)', wide: true },
   department:     { label: 'Department / Team', placeholder: 'e.g. Finance, Engineering' },
-  lastWorkingDay: { label: 'Last working day',  placeholder: 'e.g. 31st January' },
+  lastWorkingDay:     { label: 'Last working day',      placeholder: 'e.g. 31st January' },
+  candidateDemand:    { label: "Candidate's ask",       placeholder: 'e.g. ₹18 LPA' },
+  budgetCeiling:      { label: 'Budget ceiling',        placeholder: 'e.g. ₹16 LPA (confidential)', wide: true },
+  negotiationStance:  { label: 'Negotiation stance',    placeholder: 'e.g. flexible up to ₹16L, firm on current offer, open to non-cash perks', wide: true },
 }
 
 const FIELD_CONTEXT_LABEL: Record<FieldId, string> = {
@@ -81,6 +85,7 @@ const FIELD_CONTEXT_LABEL: Record<FieldId, string> = {
   time: 'Time', platform: 'Platform', interviewer: 'Interviewer', ctc: 'CTC',
   joiningDate: 'Joining date', location: 'Location', documents: 'Documents needed',
   manager: 'Reporting manager', department: 'Department', lastWorkingDay: 'Last working day',
+  candidateDemand: "Candidate's ask", budgetCeiling: 'Budget ceiling', negotiationStance: 'Negotiation stance',
 }
 
 const SCHEMA: Record<ReplyType, FieldId[]> = {
@@ -92,7 +97,7 @@ const SCHEMA: Record<ReplyType, FieldId[]> = {
   reschedule:           ['candidateName', 'role', 'round', 'date', 'time', 'platform'],
   no_show:              ['candidateName', 'role', 'date', 'time'],
   follow_up:            ['candidateName', 'role'],
-  salary_negotiation:   ['candidateName', 'role', 'ctc'],
+  salary_negotiation:   ['candidateName', 'role', 'ctc', 'candidateDemand', 'budgetCeiling', 'negotiationStance'],
   joining_confirmation: ['candidateName', 'role', 'joiningDate', 'location'],
   thank_you:            ['candidateName', 'role', 'round'],
   document_collection:  ['candidateName', 'role', 'joiningDate', 'documents'],
