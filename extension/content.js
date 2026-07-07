@@ -82,8 +82,34 @@ function injectButton(compose, msgBody) {
     togglePanel(msgBody, btn)
   })
 
-  // Insert right before the Send button
-  sendBtn.parentElement.insertBefore(btn, sendBtn)
+  // Prefer inserting before the Discard button (right side of toolbar)
+  const discardBtn =
+    compose.querySelector('[data-tooltip*="Discard"]') ||
+    compose.querySelector('[aria-label*="Discard"]') ||
+    compose.querySelector('[data-tooltip*="discard"]')
+
+  if (discardBtn) {
+    discardBtn.parentElement.insertBefore(btn, discardBtn)
+    return
+  }
+
+  // Fallback: find the "More options" button (⋮) on the right side
+  const moreBtn =
+    compose.querySelector('[data-tooltip*="More options"]') ||
+    compose.querySelector('[aria-label*="More options"]')
+
+  if (moreBtn) {
+    moreBtn.parentElement.insertBefore(btn, moreBtn)
+    return
+  }
+
+  // Last resort: append to the send button's grandparent toolbar row
+  const toolbar = sendBtn.closest('td')?.parentElement ||
+                  sendBtn.closest('[role="toolbar"]') ||
+                  sendBtn.parentElement?.parentElement
+  if (toolbar) {
+    toolbar.appendChild(btn)
+  }
 }
 
 // ─── Panel ───────────────────────────────────────────────────────────────────
