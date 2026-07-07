@@ -263,6 +263,22 @@
 
 @keyframes hrp-spin { to { transform: rotate(360deg); } }
 
+/* Add to Calendar button */
+.hrp-cal-btn {
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px;
+  background: transparent;
+  border: 1.5px solid #c8f135;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1a1a2e;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.hrp-cal-btn:hover { background: #f7fde8; }
+
 /* Result */
 .hrp-result-textarea {
   width: 100%;

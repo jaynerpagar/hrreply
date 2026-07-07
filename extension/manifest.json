@@ -7,7 +7,8 @@
   "host_permissions": [
     "https://mail.google.com/*",
     "https://www.hrreply.in/*",
-    "https://vfpqftcfimupgdccnrnh.supabase.co/*"
+    "https://vfpqftcfimupgdccnrnh.supabase.co/*",
+    "https://www.googleapis.com/*"
   ],
   "background": {
     "service_worker": "background.js"

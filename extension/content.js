@@ -362,7 +362,7 @@ function renderForm(errorMsg) {
         }
         return
       }
-      renderResult(res.text)
+      renderResult(res.text, { replyType, name, role })
     })
   })
 }
@@ -376,7 +376,11 @@ function renderGenerating() {
   `)
 }
 
-function renderResult(text) {
+const CALENDAR_TYPES = new Set(['interview_invite', 'interview_reminder', 'reschedule'])
+
+function renderResult(text, meta = {}) {
+  const showCal = CALENDAR_TYPES.has(meta.replyType)
+
   setContent(`
     <textarea class="hrp-result-textarea" id="hrp-result-text" spellcheck="false">${escHtml(text)}</textarea>
     <div class="hrp-result-actions">
@@ -384,6 +388,7 @@ function renderResult(text) {
       <button class="hrp-copy-btn" id="hrp-copy">Copy</button>
       <button class="hrp-back-btn" id="hrp-back">← Edit</button>
     </div>
+    ${showCal ? '<button class="hrp-cal-btn" id="hrp-cal">📅 Add to Calendar</button>' : ''}
   `)
 
   panel.querySelector('#hrp-insert').addEventListener('click', () => {
@@ -395,7 +400,6 @@ function renderResult(text) {
   panel.querySelector('#hrp-copy').addEventListener('click', () => {
     const result = panel.querySelector('#hrp-result-text').value
     navigator.clipboard.writeText(result).catch(() => {
-      // Fallback: select text
       panel.querySelector('#hrp-result-text').select()
       document.execCommand('copy')
     })
@@ -405,6 +409,107 @@ function renderResult(text) {
   })
 
   panel.querySelector('#hrp-back').addEventListener('click', () => renderForm())
+
+  if (showCal) {
+    panel.querySelector('#hrp-cal').addEventListener('click', () => {
+      const currentText = panel.querySelector('#hrp-result-text').value
+      renderCalendarForm(meta, currentText)
+    })
+  }
+}
+
+function renderCalendarForm(meta, text) {
+  const today = new Date()
+  const defaultDate  = today.toISOString().split('T')[0]
+  const defaultTitle = ['Interview', meta.name, meta.role ? `– ${meta.role}` : '']
+    .filter(Boolean).join(' ')
+
+  setContent(`
+    <p style="font-size:13px;font-weight:600;color:#111827;margin-bottom:12px;">📅 Add to Google Calendar</p>
+
+    <label class="hrp-label">Event Title</label>
+    <input class="hrp-input" id="hrp-cal-title" type="text" value="${escHtml(defaultTitle)}" />
+
+    <label class="hrp-label">Date</label>
+    <input class="hrp-input" id="hrp-cal-date" type="date" value="${defaultDate}" />
+
+    <div style="display:flex;gap:8px;">
+      <div style="flex:1;">
+        <label class="hrp-label">Start Time</label>
+        <input class="hrp-input" id="hrp-cal-time" type="time" value="10:00" />
+      </div>
+      <div style="flex:1;">
+        <label class="hrp-label">Duration</label>
+        <select class="hrp-select" id="hrp-cal-dur">
+          <option value="30">30 min</option>
+          <option value="60" selected>1 hour</option>
+          <option value="90">1.5 hours</option>
+          <option value="120">2 hours</option>
+        </select>
+      </div>
+    </div>
+
+    <label class="hrp-label">Location / Meeting Link <span class="opt">(optional)</span></label>
+    <input class="hrp-input" id="hrp-cal-loc" type="text" placeholder="https://meet.google.com/... or office address" />
+
+    <div id="hrp-cal-err"></div>
+
+    <div class="hrp-result-actions" style="margin-top:14px;">
+      <button class="hrp-insert-btn" id="hrp-cal-create">Create Event</button>
+      <button class="hrp-back-btn" id="hrp-cal-back">← Back</button>
+    </div>
+  `)
+
+  panel.querySelector('#hrp-cal-back').addEventListener('click', () => renderResult(text, meta))
+
+  panel.querySelector('#hrp-cal-create').addEventListener('click', () => {
+    const title    = panel.querySelector('#hrp-cal-title').value.trim()
+    const date     = panel.querySelector('#hrp-cal-date').value
+    const time     = panel.querySelector('#hrp-cal-time').value
+    const duration = parseInt(panel.querySelector('#hrp-cal-dur').value)
+    const location = panel.querySelector('#hrp-cal-loc').value.trim()
+
+    if (!title || !date || !time) return
+
+    const start = new Date(`${date}T${time}:00`)
+    const end   = new Date(start.getTime() + duration * 60000)
+
+    const createBtn = panel.querySelector('#hrp-cal-create')
+    createBtn.disabled = true
+    createBtn.innerHTML = '<div class="hrp-spinner" style="margin:0 auto;"></div>'
+
+    sendMsg({
+      type: 'CREATE_CALENDAR_EVENT',
+      event: {
+        title,
+        start:         start.toISOString(),
+        end:           end.toISOString(),
+        location,
+        candidateName: meta.name || '',
+        role:          meta.role || '',
+      },
+    }, (res) => {
+      if (!panel) return
+      if (res?.error) {
+        panel.querySelector('#hrp-cal-err').innerHTML =
+          `<div class="hrp-error" style="margin-top:10px;">${res.error}</div>`
+        createBtn.disabled = false
+        createBtn.textContent = 'Create Event'
+        return
+      }
+      setContent(`
+        <div style="text-align:center;padding:28px 16px;">
+          <div style="font-size:36px;margin-bottom:12px;">✅</div>
+          <p style="font-size:14px;font-weight:700;color:#111827;margin-bottom:6px;">Event Created!</p>
+          <p style="font-size:12px;color:#6b7280;margin-bottom:20px;">${escHtml(title)}</p>
+          <a href="${res.eventLink}" target="_blank"
+             style="display:inline-block;padding:9px 20px;background:#1a1a2e;color:#c8f135;text-decoration:none;border-radius:8px;font-size:13px;font-weight:700;">
+            Open in Google Calendar →
+          </a>
+        </div>
+      `)
+    })
+  })
 }
 
 function renderQuotaError() {

@@ -23,6 +23,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.type === 'GET_REDIRECT_URL') {
     sendResponse({ url: chrome.identity.getRedirectURL() })
   }
+  if (msg.type === 'CREATE_CALENDAR_EVENT') {
+    handleCreateCalendarEvent(msg.event).then(sendResponse)
+    return true
+  }
   if (msg.type === 'LOGOUT') {
     chrome.storage.local.remove(['access_token', 'refresh_token', 'expires_at', 'user_email'])
     sendResponse({ ok: true })
@@ -139,6 +143,82 @@ async function refreshToken(refreshToken) {
     return data.access_token
   } catch {
     return null
+  }
+}
+
+async function getGoogleCalendarToken() {
+  const stored = await chrome.storage.local.get(['gcal_token', 'gcal_expires_at'])
+  const now = Math.floor(Date.now() / 1000)
+  if (stored.gcal_token && stored.gcal_expires_at && now < stored.gcal_expires_at - 60) {
+    return stored.gcal_token
+  }
+
+  const clientId   = HRREPLY_CONFIG?.GOOGLE_CLIENT_ID
+  if (!clientId || clientId === 'YOUR_GOOGLE_CLIENT_ID') return null
+
+  const redirectUrl = chrome.identity.getRedirectURL()
+  const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth?' +
+    `client_id=${encodeURIComponent(clientId)}&` +
+    `redirect_uri=${encodeURIComponent(redirectUrl)}&` +
+    `response_type=token&` +
+    `scope=${encodeURIComponent('https://www.googleapis.com/auth/calendar.events')}`
+
+  return new Promise((resolve) => {
+    chrome.identity.launchWebAuthFlow({ url: authUrl, interactive: true }, async (responseUrl) => {
+      if (chrome.runtime.lastError || !responseUrl) { resolve(null); return }
+      const params = new URLSearchParams(new URL(responseUrl).hash.substring(1))
+      const token     = params.get('access_token')
+      const expiresIn = parseInt(params.get('expires_in') || '3600')
+      if (!token) { resolve(null); return }
+      await chrome.storage.local.set({
+        gcal_token:      token,
+        gcal_expires_at: Math.floor(Date.now() / 1000) + expiresIn,
+      })
+      resolve(token)
+    })
+  })
+}
+
+async function handleCreateCalendarEvent(eventData) {
+  const clientId = HRREPLY_CONFIG?.GOOGLE_CLIENT_ID
+  if (!clientId || clientId === 'YOUR_GOOGLE_CLIENT_ID') {
+    return { error: 'Google Calendar not configured yet. Add your Google Client ID to config.js.' }
+  }
+
+  const token = await getGoogleCalendarToken()
+  if (!token) return { error: 'Google Calendar access denied. Please try again.' }
+
+  const tz    = Intl.DateTimeFormat().resolvedOptions().timeZone
+  const event = {
+    summary: eventData.title,
+    start:   { dateTime: eventData.start, timeZone: tz },
+    end:     { dateTime: eventData.end,   timeZone: tz },
+  }
+  if (eventData.location) event.location = eventData.location
+  if (eventData.candidateName || eventData.role) {
+    event.description = [
+      eventData.candidateName ? `Candidate: ${eventData.candidateName}` : '',
+      eventData.role           ? `Role: ${eventData.role}`               : '',
+    ].filter(Boolean).join('\n')
+  }
+
+  try {
+    const res  = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+      method:  'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body:    JSON.stringify(event),
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      if (res.status === 401) {
+        await chrome.storage.local.remove(['gcal_token', 'gcal_expires_at'])
+        return { error: 'Session expired. Please try again.' }
+      }
+      return { error: data.error?.message || 'Failed to create event.' }
+    }
+    return { ok: true, eventLink: data.htmlLink }
+  } catch {
+    return { error: 'Network error. Check your connection.' }
   }
 }
 
