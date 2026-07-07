@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
   // Check usage limits for free plan
   const { data: profile } = await supabase
     .from('users')
-    .select('plan, replies_used, replies_reset_at, email, full_name')
+    .select('plan, replies_used, replies_reset_at, email, full_name, brand_voice, personal_style')
     .eq('id', user.id)
     .single()
 
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'free_limit_reached' }, { status: 403 })
   }
 
-  const prompt = buildPrompt(reply_type, tone, context_input, format ?? 'email', language ?? 'english')
+  const prompt = buildPrompt(reply_type, tone, context_input, format ?? 'email', language ?? 'english', profile?.brand_voice, profile?.personal_style)
 
   const message = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',

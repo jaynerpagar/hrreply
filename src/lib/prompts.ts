@@ -62,16 +62,20 @@ export function buildPrompt(
   contextInput: string,
   format: MessageFormat = 'email',
   language: Language = 'english',
+  brandVoice?: string | null,
+  personalStyle?: string | null,
 ): string {
   const toneOrLanguage = language !== 'english'
     ? LANGUAGE_INSTRUCTIONS[language]
     : TONE_INSTRUCTIONS[tone]
 
+  const styleGuide = [brandVoice, personalStyle].filter(Boolean).join('\n\n')
+
   return `You are an expert Indian HR recruiter assistant. Generate a ${FORMAT_LABELS_SHORT[format]} message for ${REPLY_CONTEXT[replyType]}.
 
 Format: ${FORMAT_INSTRUCTIONS[format]}
 
-Language / Tone: ${toneOrLanguage}
+Language / Tone: ${toneOrLanguage}${styleGuide ? `\n\nWriting style to match (important — apply this throughout):\n${styleGuide}` : ''}
 
 Recruiter's context about the candidate and situation:
 ${contextInput}

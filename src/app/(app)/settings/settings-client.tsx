@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { Loader2, Sparkles, CheckCircle2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, PageHeader } from '@/components/ui/card'
@@ -24,6 +25,8 @@ interface Props {
   initialTone: Tone
   plan: string
   subscription: Subscription | null
+  initialBrandVoice: string
+  initialPersonalStyle: string
 }
 
 function formatDate(iso: string | null) {
@@ -31,7 +34,7 @@ function formatDate(iso: string | null) {
   return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
-export default function SettingsClient({ initialName, initialCompany, initialTone, plan, subscription }: Props) {
+export default function SettingsClient({ initialName, initialCompany, initialTone, plan, subscription, initialBrandVoice, initialPersonalStyle }: Props) {
   const [tone, setTone] = useState<Tone>(initialTone)
   const [name, setName] = useState(initialName)
   const [company, setCompany] = useState(initialCompany)
@@ -41,6 +44,45 @@ export default function SettingsClient({ initialName, initialCompany, initialTon
   const [cancelling, setCancelling] = useState(false)
   const [cancelDone, setCancelDone] = useState(subscription?.status === 'cancelled')
   const [cancelError, setCancelError] = useState('')
+
+  // AI Preferences state
+  const [brandVoiceProfile,   setBrandVoiceProfile]   = useState(initialBrandVoice)
+  const [personalStyleProfile, setPersonalStyleProfile] = useState(initialPersonalStyle)
+  const [brandVoiceSamples,   setBrandVoiceSamples]   = useState('')
+  const [personalStyleSamples, setPersonalStyleSamples] = useState('')
+  const [learningBrand,        setLearningBrand]        = useState(false)
+  const [learningPersonal,     setLearningPersonal]     = useState(false)
+
+  async function handleLearnBrand() {
+    setLearningBrand(true)
+    const res  = await fetch('/api/settings/ai-preferences', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'brand_voice', samples: brandVoiceSamples }),
+    })
+    const data = await res.json()
+    if (res.ok) { setBrandVoiceProfile(data.profile); setBrandVoiceSamples('') }
+    setLearningBrand(false)
+  }
+
+  async function handleLearnPersonal() {
+    setLearningPersonal(true)
+    const res  = await fetch('/api/settings/ai-preferences', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'personal_style', samples: personalStyleSamples }),
+    })
+    const data = await res.json()
+    if (res.ok) { setPersonalStyleProfile(data.profile); setPersonalStyleSamples('') }
+    setLearningPersonal(false)
+  }
+
+  async function resetVoice(type: 'brand_voice' | 'personal_style') {
+    await fetch('/api/settings/ai-preferences', {
+      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type }),
+    })
+    if (type === 'brand_voice') setBrandVoiceProfile('')
+    else setPersonalStyleProfile('')
+  }
 
   const renewDate = formatDate(subscription?.current_period_end ?? null)
   const isPaid = plan !== 'free'
@@ -193,6 +235,90 @@ export default function SettingsClient({ initialName, initialCompany, initialTon
               )}
             </div>
           )}
+        </Card>
+
+        {/* AI Preferences */}
+        <Card>
+          <h2 className="text-base font-semibold text-ink mb-1">AI Preferences</h2>
+          <p className="text-xs text-ink-secondary mb-5">
+            Teach the AI your writing style. Every generated message will match it automatically.
+          </p>
+
+          <div className="flex flex-col gap-6">
+            {/* Brand Voice */}
+            <div>
+              <p className="text-sm font-semibold text-ink mb-0.5">Company brand voice</p>
+              <p className="text-xs text-ink-secondary mb-3">
+                Paste 2–5 past emails your company sent. AI learns the company tone and applies it everywhere.
+              </p>
+              {brandVoiceProfile ? (
+                <div className="bg-accent-soft border border-accent/20 rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="flex items-center gap-1.5 text-xs font-semibold text-accent-text">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Brand voice learned
+                    </span>
+                    <button onClick={() => resetVoice('brand_voice')} className="flex items-center gap-1 text-[11px] text-ink-muted hover:text-status-droppedText transition-colors">
+                      <X className="w-3 h-3" /> Reset
+                    </button>
+                  </div>
+                  <p className="text-xs text-ink-secondary leading-relaxed line-clamp-3">{brandVoiceProfile}</p>
+                </div>
+              ) : (
+                <>
+                  <textarea
+                    rows={4}
+                    value={brandVoiceSamples}
+                    onChange={e => setBrandVoiceSamples(e.target.value)}
+                    placeholder={"Paste sample emails here…\n\nExample:\nHi Priya, Thank you for attending the interview. We're pleased to inform you that you've been selected for the role..."}
+                    className="w-full border border-surface-border rounded-lg px-3 py-2 text-sm text-ink bg-surface-sunken placeholder:text-ink-muted resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition leading-relaxed mb-2.5"
+                  />
+                  <Button variant="secondary" size="sm" disabled={!brandVoiceSamples.trim() || learningBrand} onClick={handleLearnBrand}>
+                    {learningBrand
+                      ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Learning…</>
+                      : <><Sparkles className="w-3.5 h-3.5" /> Learn brand voice</>
+                    }
+                  </Button>
+                </>
+              )}
+            </div>
+
+            {/* Personal Style */}
+            <div>
+              <p className="text-sm font-semibold text-ink mb-0.5">My writing style</p>
+              <p className="text-xs text-ink-secondary mb-3">
+                Paste samples of messages you personally wrote. AI will mimic your individual style.
+              </p>
+              {personalStyleProfile ? (
+                <div className="bg-accent-soft border border-accent/20 rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="flex items-center gap-1.5 text-xs font-semibold text-accent-text">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Personal style learned
+                    </span>
+                    <button onClick={() => resetVoice('personal_style')} className="flex items-center gap-1 text-[11px] text-ink-muted hover:text-status-droppedText transition-colors">
+                      <X className="w-3 h-3" /> Reset
+                    </button>
+                  </div>
+                  <p className="text-xs text-ink-secondary leading-relaxed line-clamp-3">{personalStyleProfile}</p>
+                </div>
+              ) : (
+                <>
+                  <textarea
+                    rows={4}
+                    value={personalStyleSamples}
+                    onChange={e => setPersonalStyleSamples(e.target.value)}
+                    placeholder="Paste messages you personally wrote…"
+                    className="w-full border border-surface-border rounded-lg px-3 py-2 text-sm text-ink bg-surface-sunken placeholder:text-ink-muted resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition leading-relaxed mb-2.5"
+                  />
+                  <Button variant="secondary" size="sm" disabled={!personalStyleSamples.trim() || learningPersonal} onClick={handleLearnPersonal}>
+                    {learningPersonal
+                      ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Learning…</>
+                      : <><Sparkles className="w-3.5 h-3.5" /> Learn my style</>
+                    }
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
         </Card>
 
         {saveError && (

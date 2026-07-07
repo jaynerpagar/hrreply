@@ -8,7 +8,7 @@ export default async function SettingsPage() {
 
   const { data: profile } = await supabase
     .from('users')
-    .select('full_name, company, default_tone, plan')
+    .select('full_name, company, default_tone, plan, brand_voice, personal_style')
     .eq('id', user?.id ?? '')
     .maybeSingle()
 
@@ -28,6 +28,8 @@ export default async function SettingsPage() {
       initialTone={(profile?.default_tone ?? 'friendly') as Tone}
       plan={profile?.plan ?? 'free'}
       subscription={subscription}
+      initialBrandVoice={profile?.brand_voice ?? ''}
+      initialPersonalStyle={profile?.personal_style ?? ''}
     />
   )
 }

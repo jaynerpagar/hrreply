@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Bot, Send, Trash2, Sparkles } from 'lucide-react'
+import { Bot, Send, Trash2, Sparkles, Mic, MicOff, Paperclip, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type Role = 'user' | 'assistant'
@@ -19,10 +19,12 @@ const SUGGESTED: string[] = [
 ]
 
 export default function CopilotPage() {
-  const [messages, setMessages] = useState<Message[]>([])
-  const [input, setInput] = useState('')
-  const [loading, setLoading] = useState(false)
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const [messages,   setMessages]   = useState<Message[]>([])
+  const [input,      setInput]      = useState('')
+  const [loading,    setLoading]    = useState(false)
+  const [listening,  setListening]  = useState(false)
+  const [pdfLoading, setPdfLoading] = useState(false)
+  const bottomRef   = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
@@ -70,6 +72,35 @@ export default function CopilotPage() {
       e.preventDefault()
       send()
     }
+  }
+
+  function startVoice() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SR) { alert('Voice input requires Chrome or Edge.'); return }
+    const r = new SR()
+    r.lang = 'en-IN'; r.continuous = false; r.interimResults = false
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    r.onresult = (e: any) => { setInput(e.results[0][0].transcript) }
+    r.onend  = () => setListening(false)
+    r.onerror = () => setListening(false)
+    setListening(true)
+    r.start()
+  }
+
+  async function handlePdfUpload(file: File) {
+    setPdfLoading(true)
+    const formData = new FormData()
+    formData.append('file', file)
+    try {
+      const res  = await fetch('/api/extract-from-pdf', { method: 'POST', body: formData })
+      const data = await res.json()
+      if (res.ok && data.text) {
+        const msg = `I've uploaded a document — "${data.filename ?? file.name}". Here's its content:\n\n${data.text.slice(0, 4000)}${data.text.length > 4000 ? '\n\n[Document truncated — first 4000 characters shown]' : ''}\n\nPlease help me understand or work with this document.`
+        send(msg)
+      }
+    } catch {/* ignore */}
+    setPdfLoading(false)
   }
 
   const isEmpty = messages.length === 0
@@ -170,6 +201,11 @@ export default function CopilotPage() {
       {/* Input area */}
       <div className="shrink-0 pt-3 border-t border-surface-border">
         <div className="flex items-end gap-2 bg-surface-card border border-surface-border rounded-2xl px-4 py-3 shadow-sm focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all">
+          {/* PDF upload */}
+          <label className={cn('flex-shrink-0 cursor-pointer text-ink-muted hover:text-primary transition-colors', (pdfLoading || loading) && 'opacity-40 pointer-events-none')} title="Upload PDF document">
+            {pdfLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
+            <input type="file" accept=".pdf" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handlePdfUpload(f) }} />
+          </label>
           <textarea
             ref={textareaRef}
             rows={1}
@@ -180,6 +216,16 @@ export default function CopilotPage() {
             disabled={loading}
             className="flex-1 bg-transparent text-sm text-ink placeholder:text-ink-muted resize-none focus:outline-none leading-relaxed disabled:opacity-60 max-h-40"
           />
+          {/* Voice input */}
+          <button
+            type="button"
+            onClick={listening ? () => setListening(false) : startVoice}
+            disabled={loading}
+            className={cn('flex-shrink-0 transition-colors disabled:opacity-40', listening ? 'text-status-droppedText' : 'text-ink-muted hover:text-primary')}
+            title={listening ? 'Stop listening' : 'Voice input'}
+          >
+            {listening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+          </button>
           <button
             onClick={() => send()}
             disabled={!input.trim() || loading}

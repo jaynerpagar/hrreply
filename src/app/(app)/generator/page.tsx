@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import {
   Copy, Check, RefreshCw, Pencil, Mail, MessageCircle,
   Smartphone, Link2, Hash, LayoutGrid, Sparkles, Wand2, CornerDownLeft, Trash2,
+  Mic, MicOff, ImageIcon, UserCheck, Loader2,
 } from 'lucide-react'
 import { UpsellModal } from '@/components/ui/upsell-modal'
 import { AnalyzeBar } from '@/components/analyze'
@@ -166,6 +167,24 @@ function FormatPills({ format, onChange }: { format: MessageFormat; onChange: (f
   )
 }
 
+// ── Smart suggestions keyword map ─────────────────────────────────────────
+
+const KEYWORD_SUGGESTIONS: { keywords: string[]; types: ReplyType[] }[] = [
+  { keywords: ['interview', 'schedule'], types: ['interview_invite', 'interview_reminder'] },
+  { keywords: ['reschedule', 'postpone', 'change date'], types: ['reschedule'] },
+  { keywords: ['offer', 'package', 'ctc', 'lpa'], types: ['offer', 'salary_negotiation'] },
+  { keywords: ['salary', 'negotiat', 'counter'], types: ['salary_negotiation'] },
+  { keywords: ['reject', 'not selected', 'not moving forward'], types: ['rejection'] },
+  { keywords: ['follow up', 'follow-up', 'waiting', 'no response'], types: ['follow_up'] },
+  { keywords: ['document', 'id proof', 'aadhaar', 'pan card', 'payslip'], types: ['document_collection'] },
+  { keywords: ['join', 'joining', 'onboard', 'start date'], types: ['joining_confirmation', 'onboarding'] },
+  { keywords: ['welcome', 'first day', 'orientation'], types: ['welcome'] },
+  { keywords: ['thank', 'post interview', 'feedback'], types: ['thank_you'] },
+  { keywords: ['no show', 'absent', 'didn\'t show', 'ghost'], types: ['no_show'] },
+  { keywords: ['shortlist', 'shortlisted', 'next round'], types: ['shortlist'] },
+  { keywords: ['exit', 'last day', 'reliev', 'resign', 'farewell'], types: ['exit_interview'] },
+]
+
 // ── Thread message type ────────────────────────────────────────────────────
 
 type ThreadMessage = { role: 'candidate' | 'hr'; text: string }
@@ -193,6 +212,13 @@ function GeneratorContent() {
   const [detectedTone, setDetectedTone] = useState('')
   const [detectedIntent, setDetectedIntent] = useState('')
 
+  // Phase 13 state
+  const [candidates,       setCandidates]       = useState<{id:string;name:string;role_applied:string;notes:string|null}[]>([])
+  const [selectedCandidate, setSelectedCandidate] = useState('')
+  const [listeningFor,     setListeningFor]     = useState<'notes'|'reply'|null>(null)
+  const [screenshotLoading, setScreenshotLoading] = useState(false)
+  const [suggestedTypes,   setSuggestedTypes]   = useState<Set<ReplyType>>(new Set())
+
   // Shared output state
   const [output, setOutput] = useState('')
   const [outputFresh, setOutputFresh] = useState(false)
@@ -213,6 +239,23 @@ function GeneratorContent() {
     return () => clearTimeout(t)
   }, [outputFresh])
 
+  // Fetch candidates for memory feature
+  useEffect(() => {
+    fetch('/api/candidates').then(r => r.json()).then(data => {
+      if (Array.isArray(data)) setCandidates(data)
+    }).catch(() => {})
+  }, [])
+
+  // Smart suggestions: watch fields for keywords
+  useEffect(() => {
+    const text = Object.values(fields).join(' ').toLowerCase()
+    const next = new Set<ReplyType>()
+    KEYWORD_SUGGESTIONS.forEach(({ keywords, types }) => {
+      if (keywords.some(k => text.includes(k))) types.forEach(t => next.add(t))
+    })
+    setSuggestedTypes(next)
+  }, [fields])
+
   function switchMode(newMode: 'compose' | 'reply') {
     setMode(newMode)
     setOutput('')
@@ -229,19 +272,57 @@ function GeneratorContent() {
     setSubjectLines([])
   }
 
+  // Voice input
+  function startVoice(onResult: (t: string) => void, key: 'notes' | 'reply') {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SR) { alert('Voice input requires Chrome or Edge.'); return }
+    const r = new SR()
+    r.lang = 'en-IN'; r.continuous = false; r.interimResults = false
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    r.onresult = (e: any) => onResult(e.results[0][0].transcript)
+    r.onend  = () => setListeningFor(null)
+    r.onerror = () => setListeningFor(null)
+    setListeningFor(key)
+    r.start()
+  }
+
+  // Screenshot → extract candidate message
+  async function handleScreenshot(file: File) {
+    setScreenshotLoading(true)
+    const reader = new FileReader()
+    reader.onload = async (e) => {
+      const base64   = (e.target?.result as string).split(',')[1]
+      const mimeType = file.type || 'image/jpeg'
+      try {
+        const res  = await fetch('/api/extract-from-image', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageBase64: base64, mimeType }),
+        })
+        const data = await res.json()
+        if (res.ok && data.text) { setCandidateMessage(data.text); setMode('reply') }
+      } catch {/* ignore */}
+      setScreenshotLoading(false)
+    }
+    reader.readAsDataURL(file)
+  }
+
   const contextReady = mode === 'compose'
     ? composeContext(replyType, fields).trim().length > 0
     : candidateMessage.trim().length > 0
 
   // Compose: generate from structured fields
   async function generate() {
-    const ctx = composeContext(replyType, fields)
+    let ctx = composeContext(replyType, fields)
+    if (selectedCandidate) {
+      const c = candidates.find(c => c.id === selectedCandidate)
+      if (c?.notes) ctx += `\n\nPrevious notes on this candidate: ${c.notes}`
+    }
     if (!ctx.trim()) return
     setLoading(true); setError(''); setOutput(''); setEditing(false); setSubjectLines([])
     try {
       const res = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reply_type: replyType, tone, context_input: ctx, format, language: 'english' }),
       })
       const data = await res.json()
@@ -391,6 +472,34 @@ function GeneratorContent() {
                 <FormatPills format={format} onChange={setFormat} />
               </div>
 
+              {/* Candidate memory */}
+              {candidates.length > 0 && (
+                <div className="px-5 py-3 border-b border-surface-border">
+                  <SectionLabel>Candidate context</SectionLabel>
+                  <div className="flex items-center gap-2">
+                    <UserCheck className="w-3.5 h-3.5 text-ink-muted shrink-0" />
+                    <select
+                      value={selectedCandidate}
+                      onChange={e => setSelectedCandidate(e.target.value)}
+                      className="flex-1 border border-surface-border rounded-lg px-2.5 py-1.5 text-sm text-ink bg-surface-sunken focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition"
+                    >
+                      <option value="">Select candidate to include their history…</option>
+                      {candidates.map(c => (
+                        <option key={c.id} value={c.id}>{c.name} — {c.role_applied}</option>
+                      ))}
+                    </select>
+                  </div>
+                  {selectedCandidate && (() => {
+                    const c = candidates.find(c => c.id === selectedCandidate)
+                    return c?.notes ? (
+                      <p className="text-[11px] text-ink-muted mt-1.5 bg-surface-sunken rounded px-2 py-1 line-clamp-2">
+                        📋 {c.notes}
+                      </p>
+                    ) : null
+                  })()}
+                </div>
+              )}
+
               {/* Message type + Tone */}
               <div className="px-5 py-4 border-b border-surface-border">
                 <div className="flex items-center justify-between mb-2.5">
@@ -398,21 +507,29 @@ function GeneratorContent() {
                   <TonePills tone={tone} onChange={setTone} />
                 </div>
                 <div className="grid grid-cols-2 gap-1">
-                  {REPLY_TYPES.map(({ value, emoji, label }) => (
-                    <button
-                      key={value}
-                      onClick={() => setReplyType(value)}
-                      className={cn(
-                        'flex items-center gap-1.5 text-left px-2.5 py-2 rounded-lg border text-xs transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
-                        replyType === value
-                          ? 'border-accent bg-accent text-primary font-semibold shadow-sm'
-                          : 'border-surface-border bg-surface-page text-ink-secondary hover:border-surface-borderStrong hover:text-ink'
-                      )}
-                    >
-                      <span className="text-sm leading-none">{emoji}</span>
-                      <span className="leading-tight">{label}</span>
-                    </button>
-                  ))}
+                  {REPLY_TYPES.map(({ value, emoji, label }) => {
+                    const isSuggested = suggestedTypes.has(value) && replyType !== value
+                    return (
+                      <button
+                        key={value}
+                        onClick={() => setReplyType(value)}
+                        className={cn(
+                          'flex items-start gap-1.5 text-left px-2.5 py-2 rounded-lg border text-xs transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                          replyType === value
+                            ? 'border-accent bg-accent text-primary font-semibold shadow-sm'
+                            : isSuggested
+                            ? 'border-primary/40 bg-primary-soft text-primary-deep font-medium'
+                            : 'border-surface-border bg-surface-page text-ink-secondary hover:border-surface-borderStrong hover:text-ink'
+                        )}
+                      >
+                        <span className="text-sm leading-none mt-0.5 shrink-0">{emoji}</span>
+                        <span>
+                          <span className="leading-tight block">{label}</span>
+                          {isSuggested && <span className="text-[9px] text-primary font-bold leading-none">✦ suggested</span>}
+                        </span>
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
 
@@ -437,7 +554,16 @@ function GeneratorContent() {
                     )
                   })}
                   <div className="col-span-2">
-                    <label className="text-[11px] font-semibold text-ink-secondary block mb-1">Additional notes</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[11px] font-semibold text-ink-secondary">Additional notes</label>
+                      <button
+                        type="button"
+                        onClick={() => startVoice(t => setField('notes', t), 'notes')}
+                        className={cn('flex items-center gap-1 text-[11px] transition-colors', listeningFor === 'notes' ? 'text-status-droppedText' : 'text-ink-muted hover:text-primary')}
+                      >
+                        {listeningFor === 'notes' ? <><MicOff className="w-3 h-3" /> Stop</> : <><Mic className="w-3 h-3" /> Voice</>}
+                      </button>
+                    </div>
                     <textarea
                       rows={2}
                       value={fields['notes'] ?? ''}
@@ -462,7 +588,23 @@ function GeneratorContent() {
 
               {/* Paste area */}
               <div className="px-5 pt-4 pb-3 border-b border-surface-border">
-                <SectionLabel>Candidate&apos;s message</SectionLabel>
+                <div className="flex items-center justify-between mb-2">
+                  <SectionLabel>Candidate&apos;s message</SectionLabel>
+                  <div className="flex items-center gap-3 -mt-2">
+                    <label className={cn('cursor-pointer flex items-center gap-1 text-[11px] transition-colors', screenshotLoading ? 'text-ink-muted' : 'text-ink-muted hover:text-primary')}>
+                      {screenshotLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <ImageIcon className="w-3 h-3" />}
+                      Screenshot
+                      <input type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleScreenshot(f) }} />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => startVoice(t => setCandidateMessage(t), 'reply')}
+                      className={cn('flex items-center gap-1 text-[11px] transition-colors', listeningFor === 'reply' ? 'text-status-droppedText' : 'text-ink-muted hover:text-primary')}
+                    >
+                      {listeningFor === 'reply' ? <><MicOff className="w-3 h-3" /> Stop</> : <><Mic className="w-3 h-3" /> Voice</>}
+                    </button>
+                  </div>
+                </div>
                 <textarea
                   rows={6}
                   value={candidateMessage}
