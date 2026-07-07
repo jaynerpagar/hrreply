@@ -8,6 +8,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     getUser().then(sendResponse)
     return true
   }
+  if (msg.type === 'LOGIN') {
+    handleLogin(msg.email, msg.password).then(sendResponse)
+    return true
+  }
   if (msg.type === 'GENERATE') {
     handleGenerate(msg.payload).then(sendResponse)
     return true
@@ -17,6 +21,30 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     sendResponse({ ok: true })
   }
 })
+
+async function handleLogin(email, password) {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    })
+    const data = await res.json()
+    if (!res.ok || data.error) {
+      return { error: data.error_description || data.error || 'Invalid email or password.' }
+    }
+    const expiresAt = data.expires_at || (Math.floor(Date.now() / 1000) + (data.expires_in || 3600))
+    await chrome.storage.local.set({
+      access_token:  data.access_token,
+      refresh_token: data.refresh_token,
+      expires_at:    expiresAt,
+      user_email:    data.user?.email ?? email,
+    })
+    return { ok: true, email: data.user?.email ?? email }
+  } catch {
+    return { error: 'Network error. Please try again.' }
+  }
+}
 
 async function getUser() {
   const data = await chrome.storage.local.get(['access_token', 'user_email'])

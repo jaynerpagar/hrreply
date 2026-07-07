@@ -185,15 +185,53 @@ function setContent(html) {
 
 // ─── Views ───────────────────────────────────────────────────────────────────
 
-function renderAuthPrompt() {
+function renderAuthPrompt(loginError) {
   setContent(`
-    <div class="hrp-auth">
-      <p>Sign in to HRReply to generate professional HR messages.</p>
-      <a class="hrp-auth-link" href="${HRREPLY_CONFIG.API_BASE}/login" target="_blank">
-        Sign in to HRReply →
+    <div style="padding:2px 0;">
+      <p style="font-size:13px;font-weight:600;color:#111827;margin-bottom:3px;">Sign in to HRReply</p>
+      <p style="font-size:12px;color:#6b7280;margin-bottom:12px;line-height:1.4;">Enter your HRReply credentials to generate messages directly in Gmail.</p>
+      ${loginError ? `<div class="hrp-error">${loginError}</div>` : ''}
+      <label class="hrp-label">Email</label>
+      <input class="hrp-input" id="hrp-auth-email" type="email" placeholder="you@company.com" autocomplete="email" />
+      <label class="hrp-label" style="margin-top:8px;">Password</label>
+      <input class="hrp-input" id="hrp-auth-pass" type="password" placeholder="••••••••" autocomplete="current-password" />
+      <button class="hrp-generate-btn" id="hrp-auth-btn" style="margin-top:12px;">Sign in</button>
+      <a href="${HRREPLY_CONFIG.API_BASE}/login" target="_blank"
+         style="display:block;text-align:center;font-size:11px;color:#9ca3af;margin-top:10px;text-decoration:none;">
+        Don't have an account? Sign up →
       </a>
     </div>
   `)
+
+  const emailEl = panel.querySelector('#hrp-auth-email')
+  const passEl  = panel.querySelector('#hrp-auth-pass')
+  const btn     = panel.querySelector('#hrp-auth-btn')
+
+  emailEl.focus()
+
+  function doLogin() {
+    const email    = emailEl.value.trim()
+    const password = passEl.value
+    if (!email || !password) return
+
+    btn.disabled = true
+    btn.innerHTML = '<div class="hrp-spinner" style="margin:0 auto;"></div>'
+
+    chrome.runtime.sendMessage({ type: 'LOGIN', email, password }, (res) => {
+      if (chrome.runtime.lastError || !res) {
+        renderAuthPrompt('Extension error. Please try again.')
+        return
+      }
+      if (res.error) {
+        renderAuthPrompt(res.error)
+        return
+      }
+      renderForm()
+    })
+  }
+
+  btn.addEventListener('click', doLogin)
+  passEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin() })
 }
 
 function renderForm(errorMsg) {
