@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import {
   Search, Plus, Pencil, Trash2, X, Phone, Briefcase,
   ChevronDown, Sparkles, Zap, Wand2, Brain, Loader2, AlertTriangle, History, Copy, Check,
+  FileText, UploadCloud, CheckCircle2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -91,8 +92,32 @@ function CandidateModal({ candidate, onClose, onSave }: ModalProps) {
   )
   const [loading, setLoading]             = useState(false)
   const [error, setError]                 = useState('')
+  const [resumeLoading, setResumeLoading] = useState(false)
+  const [resumeError, setResumeError]     = useState('')
+  const [resumeParsed, setResumeParsed]   = useState('')
 
   const inputCls = 'w-full border border-surface-borderStrong rounded px-3 py-2 text-sm text-ink focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary bg-surface-card'
+
+  async function handleResumeFile(file: File) {
+    setResumeLoading(true); setResumeError(''); setResumeParsed('')
+    try {
+      const fd = new FormData(); fd.append('file', file)
+      const res = await fetch('/api/parse-resume', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok) { setResumeError(data.error ?? 'Failed to parse resume'); return }
+      const p = data.profile
+      if (p.name)         setName(p.name)
+      if (p.phone)        setPhone(p.phone)
+      if (p.currentCompany) setCurrentCompany(p.currentCompany)
+      if (p.experience)   setExperience(p.experience)
+      if (p.noticePeriod) setNoticePeriod(p.noticePeriod)
+      if (p.skills?.length) setSkills(Array.isArray(p.skills) ? p.skills.join(', ') : p.skills)
+      if (!role && p.currentTitle) setRole(p.currentTitle)
+      setShowDetails(true)
+      setResumeParsed(file.name)
+    } catch { setResumeError('Network error — please try again.') }
+    finally { setResumeLoading(false) }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -125,6 +150,41 @@ function CandidateModal({ candidate, onClose, onSave }: ModalProps) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-5 flex flex-col gap-4">
+
+          {/* Resume upload — only for new candidates */}
+          {!candidate && (
+            <label className={cn(
+              'flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-5 cursor-pointer transition-colors',
+              resumeLoading ? 'border-primary bg-primary-soft/30' :
+              resumeParsed  ? 'border-status-placed bg-status-placedBg' :
+              'border-surface-borderStrong hover:border-primary hover:bg-primary-soft/20'
+            )}>
+              <input
+                type="file" accept=".pdf,.docx,.doc" className="sr-only"
+                onChange={e => { const f = e.target.files?.[0]; if (f) handleResumeFile(f) }}
+                disabled={resumeLoading}
+              />
+              {resumeLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                  <p className="text-xs text-primary font-medium">Reading resume…</p>
+                </>
+              ) : resumeParsed ? (
+                <>
+                  <CheckCircle2 className="w-5 h-5 text-status-placed" />
+                  <p className="text-xs text-status-placedText font-medium">Resume parsed — edit fields below if needed</p>
+                  <p className="text-[11px] text-ink-muted">{resumeParsed}</p>
+                </>
+              ) : (
+                <>
+                  <UploadCloud className="w-5 h-5 text-ink-muted" />
+                  <p className="text-xs font-medium text-ink">Upload resume to auto-fill <span className="text-ink-muted font-normal">(optional)</span></p>
+                  <p className="text-[11px] text-ink-muted flex items-center gap-1"><FileText className="w-3 h-3" /> PDF or DOCX · Max 10 MB</p>
+                </>
+              )}
+            </label>
+          )}
+          {resumeError && <p className="text-xs text-status-droppedText bg-status-droppedBg rounded px-3 py-2 -mt-2">{resumeError}</p>}
 
           {/* Basic info */}
           <div className="grid grid-cols-2 gap-3">

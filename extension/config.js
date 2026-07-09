@@ -6,5 +6,5 @@ const HRREPLY_CONFIG = {
   API_BASE: 'https://www.hrreply.in',
   // Google OAuth client ID — create one at console.cloud.google.com
   // Type: Web Application, Authorized redirect URI: https://akjoelnmpipddcfgimollgdnnllnfgff.chromiumapp.org/
-  GOOGLE_CLIENT_ID: 'YOUR_GOOGLE_CLIENT_ID',
+  GOOGLE_CLIENT_ID: '308126244991-3s9a5noeghmgna42qfne8v44qskr5ti1.apps.googleusercontent.com',
 }
