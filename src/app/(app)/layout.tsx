@@ -5,6 +5,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
+  if (user) {
+    const meta = user.user_metadata ?? {}
+    await supabase.from('users').upsert({
+      id: user.id,
+      email: user.email ?? '',
+      full_name: meta.full_name ?? meta.name ?? '',
+    }, { onConflict: 'id', ignoreDuplicates: true })
+  }
+
   return (
     <div className="flex h-screen bg-surface-page">
       <Sidebar user={user} />
