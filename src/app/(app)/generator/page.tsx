@@ -1046,7 +1046,7 @@ function GeneratorContent() {
 
           {/* Output */}
           {output && !isLoading && (
-            <div className="bg-surface-card border border-surface-border rounded-xl shadow-card overflow-hidden">
+            <div className="bg-surface-card border border-surface-border rounded-xl shadow-card overflow-hidden flex-shrink-0">
 
               {/* A/B Variant tabs (#75) */}
               {variants.length > 0 && (
