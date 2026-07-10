@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
   Briefcase, Plus, X, MapPin, Building2, Users, ChevronRight,
-  MoreHorizontal, Pencil, Trash2, CheckCircle2, Clock, PauseCircle,
+  MoreHorizontal, Pencil, Trash2, CheckCircle2, PauseCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'

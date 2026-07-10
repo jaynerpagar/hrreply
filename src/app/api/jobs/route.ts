@@ -16,7 +16,7 @@ export async function GET() {
 
   // Attach candidate stage counts for each job
   const jobIds = (data ?? []).map(j => j.id)
-  let candidateCounts: Record<string, Record<string, number>> = {}
+  const candidateCounts: Record<string, Record<string, number>> = {}
 
   if (jobIds.length > 0) {
     const { data: cands } = await supabase

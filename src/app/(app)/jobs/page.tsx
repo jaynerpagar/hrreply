@@ -12,7 +12,7 @@ export default async function JobsPage() {
     .order('created_at', { ascending: false })
 
   const jobIds = (jobs ?? []).map(j => j.id)
-  let candidateCounts: Record<string, Record<string, number>> = {}
+  const candidateCounts: Record<string, Record<string, number>> = {}
 
   if (jobIds.length > 0) {
     const { data: cands } = await supabase

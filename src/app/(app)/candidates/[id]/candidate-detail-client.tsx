@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import {
-  ArrowLeft, Phone, MapPin, Briefcase, Clock, Calendar, Building2,
+  ArrowLeft, Phone, Briefcase, Clock, Calendar, Building2,
   Zap, FileText, MessageSquare, StickyNote, Brain, Plus, Trash2,
   Copy, Check, ChevronRight, Star, AlertTriangle,
 } from 'lucide-react'
