@@ -7,23 +7,48 @@ import type { User } from '@supabase/supabase-js'
 import { cn } from '@/lib/utils'
 import { Logo } from '@/components/ui/logo'
 import { createClient } from '@/lib/supabase/client'
-import { LayoutDashboard, Wand2, BookOpen, History, Users, Settings, CreditCard, Menu, X, LogOut, Bot, Sparkles, Zap, Brain, BarChart2, FileSpreadsheet, UsersRound, Plug, FileText } from 'lucide-react'
+import {
+  LayoutDashboard, Wand2, BookOpen, History, Users, Settings, CreditCard,
+  Menu, X, LogOut, Bot, Sparkles, Zap, Brain, BarChart2, FileSpreadsheet,
+  UsersRound, Plug, FileText, Briefcase,
+} from 'lucide-react'
 
-const NAV = [
-  { href: '/dashboard',    label: 'Dashboard',            icon: LayoutDashboard  },
-  { href: '/generator',   label: 'Reply generator',       icon: Wand2            },
-  { href: '/outreach',    label: 'Personalized outreach', icon: Sparkles         },
-  { href: '/automation',  label: 'HR Automation',         icon: Zap              },
-  { href: '/copilot',      label: 'HR Copilot',            icon: Bot              },
-  { href: '/hr-documents', label: 'HR Documents',          icon: FileText         },
-  { href: '/templates',   label: 'Templates',             icon: BookOpen         },
-  { href: '/bulk',        label: 'Bulk Messages',         icon: FileSpreadsheet  },
-  { href: '/analyze',     label: 'Message Intelligence',  icon: Brain            },
-  { href: '/analytics',   label: 'Analytics',             icon: BarChart2        },
-  { href: '/team',        label: 'Team Workspace',        icon: UsersRound       },
-  { href: '/history',     label: 'Reply history',         icon: History          },
-  { href: '/candidates',   label: 'Candidates',            icon: Users            },
-  { href: '/integrations', label: 'Integrations',          icon: Plug             },
+const NAV_GROUPS = [
+  {
+    label: 'Workspace',
+    items: [
+      { href: '/dashboard',  label: 'Dashboard',  icon: LayoutDashboard },
+      { href: '/candidates', label: 'Candidates', icon: Users },
+      { href: '/jobs',       label: 'Jobs',        icon: Briefcase },
+      { href: '/templates',  label: 'Templates',   icon: BookOpen },
+    ],
+  },
+  {
+    label: 'AI Tools',
+    items: [
+      { href: '/generator',    label: 'Reply Generator',   icon: Wand2 },
+      { href: '/outreach',     label: 'Personalized Outreach', icon: Sparkles },
+      { href: '/copilot',      label: 'HR Copilot',        icon: Bot },
+      { href: '/hr-documents', label: 'HR Documents',      icon: FileText },
+      { href: '/bulk',         label: 'Bulk Messages',     icon: FileSpreadsheet },
+      { href: '/analyze',      label: 'Message Intelligence', icon: Brain },
+    ],
+  },
+  {
+    label: 'Automate & Analyze',
+    items: [
+      { href: '/automation', label: 'Automation',  icon: Zap },
+      { href: '/analytics',  label: 'Analytics',   icon: BarChart2 },
+      { href: '/history',    label: 'Reply History', icon: History },
+    ],
+  },
+  {
+    label: 'Team',
+    items: [
+      { href: '/team',        label: 'Team Workspace', icon: UsersRound },
+      { href: '/integrations', label: 'Integrations',  icon: Plug },
+    ],
+  },
 ]
 
 const BOTTOM_NAV = [
@@ -59,12 +84,7 @@ function UserSection({ user, onNavigate }: { user: User | null; onNavigate?: () 
 
   const displayName = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || 'Account'
   const email = user?.email ?? ''
-  const initials = displayName
-    .split(' ')
-    .slice(0, 2)
-    .map((w: string) => w[0])
-    .join('')
-    .toUpperCase()
+  const initials = displayName.split(' ').slice(0, 2).map((w: string) => w[0]).join('').toUpperCase()
 
   async function handleLogout() {
     setLoggingOut(true)
@@ -78,16 +98,13 @@ function UserSection({ user, onNavigate }: { user: User | null; onNavigate?: () 
   return (
     <div className="px-3 py-3 border-t border-white/10">
       <div className="flex items-center gap-2.5 px-2 py-2 rounded-lg group">
-        {/* Avatar */}
         <div className="w-7 h-7 rounded-full bg-accent flex items-center justify-center shrink-0">
           <span className="text-[11px] font-bold text-primary-deep">{initials}</span>
         </div>
-        {/* Name + email */}
         <div className="flex-1 min-w-0">
           <p className="text-xs font-semibold text-white truncate leading-tight">{displayName}</p>
           <p className="text-[11px] text-gray-500 truncate leading-tight">{email}</p>
         </div>
-        {/* Logout */}
         <button
           onClick={handleLogout}
           disabled={loggingOut}
@@ -105,13 +122,27 @@ function NavLinks({ user, onClick }: { user: User | null; onClick?: () => void }
   const pathname = usePathname()
   return (
     <>
-      <nav className="flex-1 px-3 py-4 flex flex-col gap-0.5 overflow-y-auto">
-        {NAV.map((item) => (
-          <NavItem key={item.href} {...item} active={pathname === item.href} onClick={onClick} />
+      <nav className="flex-1 px-3 py-3 flex flex-col gap-4 overflow-y-auto">
+        {NAV_GROUPS.map(group => (
+          <div key={group.label}>
+            <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-widest px-3 mb-1">
+              {group.label}
+            </p>
+            <div className="flex flex-col gap-0.5">
+              {group.items.map(item => (
+                <NavItem
+                  key={item.href}
+                  {...item}
+                  active={pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href + '/'))}
+                  onClick={onClick}
+                />
+              ))}
+            </div>
+          </div>
         ))}
       </nav>
       <div className="px-3 py-3 border-t border-white/10 flex flex-col gap-0.5">
-        {BOTTOM_NAV.map((item) => (
+        {BOTTOM_NAV.map(item => (
           <NavItem key={item.href} {...item} active={pathname === item.href} onClick={onClick} />
         ))}
       </div>
@@ -125,24 +156,17 @@ export function Sidebar({ user }: { user?: User | null }) {
 
   return (
     <>
-      {/* Mobile top header */}
+      {/* Mobile header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-primary-deep flex items-center justify-between px-4 h-14 border-b border-white/10">
         <Logo size="sm" theme="dark" />
-        <button
-          onClick={() => setOpen(true)}
-          className="text-gray-400 hover:text-white p-1"
-          aria-label="Open menu"
-        >
+        <button onClick={() => setOpen(true)} className="text-gray-400 hover:text-white p-1" aria-label="Open menu">
           <Menu className="w-5 h-5" />
         </button>
       </header>
 
-      {/* Mobile drawer backdrop */}
+      {/* Mobile backdrop */}
       {open && (
-        <div
-          className="lg:hidden fixed inset-0 z-40 bg-ink/50 backdrop-blur-sm"
-          onClick={() => setOpen(false)}
-        />
+        <div className="lg:hidden fixed inset-0 z-40 bg-ink/50 backdrop-blur-sm" onClick={() => setOpen(false)} />
       )}
 
       {/* Mobile drawer */}
@@ -152,11 +176,7 @@ export function Sidebar({ user }: { user?: User | null }) {
       )}>
         <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
           <Logo size="sm" theme="dark" />
-          <button
-            onClick={() => setOpen(false)}
-            className="text-gray-400 hover:text-white p-1"
-            aria-label="Close menu"
-          >
+          <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-white p-1" aria-label="Close menu">
             <X className="w-5 h-5" />
           </button>
         </div>

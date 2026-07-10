@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import Link from 'next/link'
 import {
   Search, Plus, Pencil, Trash2, X, Phone, Briefcase,
   ChevronDown, Sparkles, Zap, Wand2, Brain, Loader2, AlertTriangle, History, Copy, Check,
-  FileText, UploadCloud, CheckCircle2,
+  FileText, UploadCloud, CheckCircle2, ExternalLink,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -587,6 +588,14 @@ export default function CandidatesClient({ initial }: { initial: Candidate[] }) 
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1 justify-end">
+                          {/* View profile */}
+                          <Link
+                            href={`/candidates/${c.id}`}
+                            title="View full profile"
+                            className="p-1.5 rounded text-ink-muted hover:text-primary hover:bg-primary-soft transition-colors"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </Link>
                           {/* Generate reply */}
                           <a
                             href={`/generator?context=${encodeURIComponent(`${c.name}, applying for ${c.role_applied}.`)}`}
