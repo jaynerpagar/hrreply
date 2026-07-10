@@ -439,7 +439,7 @@ function RunNowPanel({ rule, onClose, onRan }: {
   }
 
   function toggleSelect(id: string) {
-    setSelectedIds(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s })
+    setSelectedIds(prev => { const s = new Set(prev); if (s.has(id)) { s.delete(id) } else { s.add(id) }; return s })
   }
 
   function selectAll() { setSelectedIds(new Set(filteredCandidates.map(c => c.id))) }
