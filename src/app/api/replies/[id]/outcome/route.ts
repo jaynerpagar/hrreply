@@ -10,13 +10,14 @@ export async function PATCH(
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id } = await params
-  const { outcome } = await req.json()
+  const body = await req.json()
+  const { outcome } = body
   const valid = ['got_reply', 'no_reply', 'accepted', 'declined']
-  if (!valid.includes(outcome)) return NextResponse.json({ error: 'Invalid outcome' }, { status: 400 })
+  if (outcome !== null && !valid.includes(outcome)) return NextResponse.json({ error: 'Invalid outcome' }, { status: 400 })
 
   const { error } = await supabase
     .from('replies')
-    .update({ outcome })
+    .update({ outcome: outcome ?? null })
     .eq('id', id)
     .eq('user_id', user.id)
 
