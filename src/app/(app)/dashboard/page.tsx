@@ -91,12 +91,12 @@ export default async function DashboardPage({
   const repliesUsed = profile?.replies_used ?? 0
   const pct         = Math.min((repliesUsed / FREE_REPLY_LIMIT) * 100, 100)
 
-  // ── Reply efficiency ──────────────────────────────────────────────────────
+  // Reply efficiency
   const outcomes = replyOutcomes ?? []
   const positiveOutcomes = outcomes.filter(r => r.outcome === 'positive' || r.outcome === 'replied').length
   const efficiencyPct = outcomes.length > 0 ? Math.round((positiveOutcomes / outcomes.length) * 100) : null
 
-  // ── Priority queue ────────────────────────────────────────────────────────
+  // Priority queue
   const ghosting = candidates.filter(c => {
     if (['hired', 'rejected', 'applied'].includes(c.stage)) return false
     const ref = c.last_contacted_at ?? c.created_at
@@ -111,12 +111,11 @@ export default async function DashboardPage({
     c.interview_at && c.interview_at >= now.toISOString() && c.interview_at <= oneDayOut
   ).sort((a, b) => new Date(a.interview_at!).getTime() - new Date(b.interview_at!).getTime()).slice(0, 3)
 
-  // ── Joining countdown (next 7 days) ───────────────────────────────────────
   const joiningThisWeek = candidates.filter(c =>
     c.joining_at && c.joining_at >= now.toISOString() && c.joining_at <= sevenDaysOut
-  ).sort((a, b) => new Date(a.joining_at!).getTime() - new Date(b.joining_at!).getTime()).slice(0, 5)
+  ).sort((a, b) => new Date(a.joining_at!).getTime() - new Date(b.joining_at!).getTime()).slice(0, 4)
 
-  // ── Today's agenda ────────────────────────────────────────────────────────
+  // Today's agenda
   const interviewsToday = candidates.filter(c =>
     c.interview_at && c.interview_at >= todayStart && c.interview_at < todayEnd
   )
@@ -128,7 +127,7 @@ export default async function DashboardPage({
   )
   const hasAgenda = interviewsToday.length > 0 || offersExpToday.length > 0 || joiningToday.length > 0
 
-  // ── Pipeline stats ────────────────────────────────────────────────────────
+  // Pipeline stats
   const stageCounts: Record<string, number> = {}
   for (const c of candidates) { stageCounts[c.stage] = (stageCounts[c.stage] ?? 0) + 1 }
   const activeStages = ['applied', 'screening', 'shortlisted', 'interview_scheduled', 'interviewed', 'offer_sent', 'hired']
@@ -136,14 +135,22 @@ export default async function DashboardPage({
   const prevWeekActive = totalActive - (newThisWeek ?? 0)
 
   const priorityCount = ghosting.length + expiringOffers.length + upcomingInterviews.length
+  const hasPriority   = priorityCount > 0 || joiningThisWeek.length > 0
+
+  const quickActions = [
+    { label: 'Interview Invite', href: '/generator?type=interview_invite', emoji: '📅' },
+    { label: 'Offer Letter',     href: '/generator?type=offer',            emoji: '🎉' },
+    { label: 'Rejection',        href: '/generator?type=rejection',        emoji: '📧' },
+    { label: 'Follow-up',        href: '/generator?type=follow_up',        emoji: '🔁' },
+  ]
 
   return (
-    <div>
+    <div className="h-full flex flex-col overflow-hidden">
       <UpgradeBanner show={justUpgraded} />
 
       {/* Today's Agenda strip */}
       {hasAgenda && (
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 bg-primary text-white rounded-xl px-5 py-3 mb-5">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 bg-primary text-white rounded-xl px-5 py-3 mb-4 shrink-0">
           <p className="text-xs font-bold uppercase tracking-widest text-white/60 shrink-0">Today</p>
           {interviewsToday.length > 0 && (
             <span className="flex items-center gap-1.5 text-sm">
@@ -174,7 +181,8 @@ export default async function DashboardPage({
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-5">
+      {/* Page header */}
+      <div className="flex items-center justify-between mb-4 shrink-0">
         <div>
           <h1 className="text-xl font-semibold text-ink">Dashboard</h1>
           <p className="text-sm text-ink-secondary mt-0.5">
@@ -188,8 +196,8 @@ export default async function DashboardPage({
         </Link>
       </div>
 
-      {/* Stats row — with trend deltas */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+      {/* Stats row */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4 shrink-0">
         <Link href="/candidates" className="bg-surface-card border border-surface-border rounded-xl px-4 py-3 hover:border-surface-borderStrong hover:shadow-card transition-all group">
           <div className="flex items-center justify-between mb-1">
             <p className="text-2xl font-semibold text-ink">{candidates.length}</p>
@@ -235,119 +243,148 @@ export default async function DashboardPage({
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      {/* ── Main grid — fills remaining height ────────────────────────── */}
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-4">
 
-        {/* ── Left / Priority + Actions ── */}
-        <div className="lg:col-span-2 flex flex-col gap-4">
+        {/* Left column: priority queue + quick actions */}
+        <div className="lg:col-span-2 flex flex-col min-h-0 gap-3">
 
-          {/* Expiring offers */}
-          {expiringOffers.length > 0 && (
-            <div className="bg-surface-card border border-surface-border rounded-xl overflow-hidden">
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-surface-border bg-status-droppedBg/40">
-                <AlertTriangle className="w-4 h-4 text-status-droppedText shrink-0" />
-                <p className="text-sm font-semibold text-status-droppedText">Offers Expiring Soon</p>
-              </div>
-              <div className="divide-y divide-surface-border">
-                {expiringOffers.map(c => {
-                  const days = Math.ceil((new Date(c.offer_expiry_at!).getTime() - Date.now()) / 86400000)
-                  return (
-                    <div key={c.id} className="flex items-center justify-between px-4 py-3 gap-4">
-                      <div>
-                        <p className="text-sm font-medium text-ink">{c.name}</p>
-                        <p className="text-xs text-ink-secondary">{c.role_applied}{c.current_company ? ` · ${c.current_company}` : ''}</p>
-                      </div>
-                      <div className="flex items-center gap-3 shrink-0">
-                        <span className="text-xs font-medium text-status-droppedText">{days === 0 ? 'Today!' : `${days}d left`}</span>
-                        <Link href={`/generator?candidate=${encodeURIComponent(c.name)}&type=follow_up`}>
-                          <Button variant="secondary" size="sm">Send nudge</Button>
-                        </Link>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
+          {/* Scrollable priority area */}
+          <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-3">
 
-          {/* Upcoming interviews */}
-          {upcomingInterviews.length > 0 && (
-            <div className="bg-surface-card border border-surface-border rounded-xl overflow-hidden">
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-surface-border bg-status-processBg/40">
-                <Calendar className="w-4 h-4 text-status-processText shrink-0" />
-                <p className="text-sm font-semibold text-status-processText">Interviews in Next 24h</p>
-              </div>
-              <div className="divide-y divide-surface-border">
-                {upcomingInterviews.map(c => {
-                  const hrs = Math.ceil((new Date(c.interview_at!).getTime() - Date.now()) / 3600000)
-                  return (
-                    <div key={c.id} className="flex items-center justify-between px-4 py-3 gap-4">
-                      <div>
-                        <p className="text-sm font-medium text-ink">{c.name}</p>
-                        <p className="text-xs text-ink-secondary">{new Date(c.interview_at!).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}</p>
+            {/* Expiring offers */}
+            {expiringOffers.length > 0 && (
+              <div className="bg-surface-card border border-surface-border rounded-xl overflow-hidden shrink-0">
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-surface-border bg-status-droppedBg/40">
+                  <AlertTriangle className="w-4 h-4 text-status-droppedText shrink-0" />
+                  <p className="text-sm font-semibold text-status-droppedText">Offers Expiring Soon</p>
+                </div>
+                <div className="divide-y divide-surface-border">
+                  {expiringOffers.map(c => {
+                    const days = Math.ceil((new Date(c.offer_expiry_at!).getTime() - Date.now()) / 86400000)
+                    return (
+                      <div key={c.id} className="flex items-center justify-between px-4 py-3 gap-4">
+                        <div>
+                          <p className="text-sm font-medium text-ink">{c.name}</p>
+                          <p className="text-xs text-ink-secondary">{c.role_applied}{c.current_company ? ` · ${c.current_company}` : ''}</p>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <span className="text-xs font-medium text-status-droppedText">{days === 0 ? 'Today!' : `${days}d left`}</span>
+                          <Link href={`/generator?candidate=${encodeURIComponent(c.name)}&type=follow_up`}>
+                            <Button variant="secondary" size="sm">Send nudge</Button>
+                          </Link>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3 shrink-0">
-                        <span className="text-xs font-medium text-status-processText">in {hrs}h</span>
-                        <Link href={`/generator?candidate=${encodeURIComponent(c.name)}&type=interview_reminder`}>
-                          <Button variant="secondary" size="sm">Send reminder</Button>
-                        </Link>
-                      </div>
-                    </div>
-                  )
-                })}
+                    )
+                  })}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Ghosting risk */}
-          {ghosting.length > 0 && (
-            <div className="bg-surface-card border border-surface-border rounded-xl overflow-hidden">
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-surface-border">
-                <Clock className="w-4 h-4 text-ink-muted shrink-0" />
-                <p className="text-sm font-semibold text-ink">Ghosting Risk</p>
-                <Link href="/candidates" className="ml-auto text-xs text-primary hover:underline font-medium">View all</Link>
-              </div>
-              <div className="divide-y divide-surface-border">
-                {ghosting.map(c => {
-                  const ref  = c.last_contacted_at ?? c.created_at
-                  const days = Math.floor((Date.now() - new Date(ref).getTime()) / 86400000)
-                  return (
-                    <div key={c.id} className="flex items-center justify-between px-4 py-3 gap-4">
-                      <div>
-                        <p className="text-sm font-medium text-ink">{c.name}</p>
-                        <p className="text-xs text-ink-secondary">{c.role_applied} · {STAGE_LABELS[c.stage] ?? c.stage}</p>
+            {/* Upcoming interviews */}
+            {upcomingInterviews.length > 0 && (
+              <div className="bg-surface-card border border-surface-border rounded-xl overflow-hidden shrink-0">
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-surface-border bg-status-processBg/40">
+                  <Calendar className="w-4 h-4 text-status-processText shrink-0" />
+                  <p className="text-sm font-semibold text-status-processText">Interviews in Next 24h</p>
+                </div>
+                <div className="divide-y divide-surface-border">
+                  {upcomingInterviews.map(c => {
+                    const hrs = Math.ceil((new Date(c.interview_at!).getTime() - Date.now()) / 3600000)
+                    return (
+                      <div key={c.id} className="flex items-center justify-between px-4 py-3 gap-4">
+                        <div>
+                          <p className="text-sm font-medium text-ink">{c.name}</p>
+                          <p className="text-xs text-ink-secondary">{new Date(c.interview_at!).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}</p>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <span className="text-xs font-medium text-status-processText">in {hrs}h</span>
+                          <Link href={`/generator?candidate=${encodeURIComponent(c.name)}&type=interview_reminder`}>
+                            <Button variant="secondary" size="sm">Send reminder</Button>
+                          </Link>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3 shrink-0">
-                        <span className="text-xs text-ink-muted">{days}d no contact</span>
-                        <Link href={`/generator?candidate=${encodeURIComponent(c.name)}&type=follow_up`}>
-                          <Button variant="secondary" size="sm">Follow up</Button>
-                        </Link>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Ghosting risk */}
+            {ghosting.length > 0 && (
+              <div className="bg-surface-card border border-surface-border rounded-xl overflow-hidden shrink-0">
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-surface-border">
+                  <Clock className="w-4 h-4 text-ink-muted shrink-0" />
+                  <p className="text-sm font-semibold text-ink">Ghosting Risk</p>
+                  <Link href="/candidates" className="ml-auto text-xs text-primary hover:underline font-medium">View all</Link>
+                </div>
+                <div className="divide-y divide-surface-border">
+                  {ghosting.map(c => {
+                    const ref  = c.last_contacted_at ?? c.created_at
+                    const days = Math.floor((Date.now() - new Date(ref).getTime()) / 86400000)
+                    return (
+                      <div key={c.id} className="flex items-center justify-between px-4 py-3 gap-4">
+                        <div>
+                          <p className="text-sm font-medium text-ink">{c.name}</p>
+                          <p className="text-xs text-ink-secondary">{c.role_applied} · {STAGE_LABELS[c.stage] ?? c.stage}</p>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <span className="text-xs text-ink-muted">{days}d no contact</span>
+                          <Link href={`/generator?candidate=${encodeURIComponent(c.name)}&type=follow_up`}>
+                            <Button variant="secondary" size="sm">Follow up</Button>
+                          </Link>
+                        </div>
                       </div>
-                    </div>
-                  )
-                })}
+                    )
+                  })}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Empty state */}
-          {priorityCount === 0 && (
-            <div className="bg-surface-card border border-surface-border rounded-xl p-8 text-center">
-              <div className="w-12 h-12 rounded-full bg-status-placedBg flex items-center justify-center mx-auto mb-3">
-                <TrendingUp className="w-5 h-5 text-status-placedText" />
+            {/* Joining this week — in left panel to avoid right panel overload */}
+            {joiningThisWeek.length > 0 && (
+              <div className="bg-surface-card border border-surface-border rounded-xl overflow-hidden shrink-0">
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-surface-border">
+                  <UserCheck className="w-4 h-4 text-status-placedText shrink-0" />
+                  <p className="text-sm font-semibold text-ink">Joining This Week</p>
+                  <Link href="/automation" className="ml-auto text-xs text-primary hover:underline font-medium">Send messages</Link>
+                </div>
+                <div className="grid grid-cols-2 divide-x divide-surface-border">
+                  {joiningThisWeek.map(c => {
+                    const days = Math.ceil((new Date(c.joining_at!).getTime() - Date.now()) / 86400000)
+                    return (
+                      <div key={c.id} className="flex items-center justify-between px-4 py-2.5 gap-3">
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-ink truncate">{c.name}</p>
+                          <p className="text-[11px] text-ink-muted truncate">{c.role_applied}</p>
+                        </div>
+                        <span className={cn('text-[11px] font-semibold shrink-0', days <= 1 ? 'text-status-droppedText' : 'text-status-placedText')}>
+                          {days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : `in ${days}d`}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
-              <h3 className="font-semibold text-ink mb-1">All caught up!</h3>
-              <p className="text-sm text-ink-secondary">No urgent actions right now. Keep the momentum going.</p>
-            </div>
-          )}
+            )}
 
-          {/* Quick actions */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {[
-              { label: 'Interview Invite', href: '/generator?type=interview_invite', emoji: '📅' },
-              { label: 'Offer Letter',     href: '/generator?type=offer',            emoji: '🎉' },
-              { label: 'Rejection',        href: '/generator?type=rejection',        emoji: '📧' },
-              { label: 'Follow-up',        href: '/generator?type=follow_up',        emoji: '🔁' },
-            ].map(({ label, href, emoji }) => (
+            {/* Empty state when no priority items */}
+            {!hasPriority && (
+              <div className="flex-1 flex items-center justify-center bg-surface-card border border-surface-border rounded-xl min-h-[160px]">
+                <div className="text-center px-6">
+                  <div className="w-12 h-12 rounded-full bg-status-placedBg flex items-center justify-center mx-auto mb-3">
+                    <TrendingUp className="w-5 h-5 text-status-placedText" />
+                  </div>
+                  <h3 className="font-semibold text-ink mb-1">All caught up!</h3>
+                  <p className="text-sm text-ink-secondary">No urgent actions right now. Keep the momentum going.</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Quick actions — always pinned to bottom of left column */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 shrink-0">
+            {quickActions.map(({ label, href, emoji }) => (
               <Link key={label} href={href}
                 className="bg-surface-card border border-surface-border rounded-xl p-4 text-center hover:border-primary/40 hover:bg-primary-soft/20 hover:shadow-card transition-all group">
                 <div className="text-xl mb-2">{emoji}</div>
@@ -357,11 +394,11 @@ export default async function DashboardPage({
           </div>
         </div>
 
-        {/* ── Right panel ── */}
-        <div className="flex flex-col gap-4">
+        {/* Right column: side widgets */}
+        <div className="flex flex-col gap-3 min-h-0 overflow-y-auto">
 
           {/* Pipeline snapshot */}
-          <div className="bg-surface-card border border-surface-border rounded-xl p-4">
+          <div className="bg-surface-card border border-surface-border rounded-xl p-4 shrink-0">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-semibold text-ink">Pipeline</h3>
               <Link href="/candidates" className="text-xs text-primary hover:underline font-medium">View all</Link>
@@ -383,44 +420,42 @@ export default async function DashboardPage({
             </div>
           </div>
 
-          {/* Joining countdown — NEW */}
-          {joiningThisWeek.length > 0 && (
-            <div className="bg-surface-card border border-surface-border rounded-xl overflow-hidden">
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-surface-border">
-                <UserCheck className="w-4 h-4 text-status-placedText shrink-0" />
-                <h3 className="text-sm font-semibold text-ink">Joining This Week</h3>
+          {/* Active automations */}
+          <div className="bg-surface-card border border-surface-border rounded-xl p-4 shrink-0">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-ink">Automations</h3>
+              <Link href="/automation" className="text-xs text-primary hover:underline font-medium">Manage</Link>
+            </div>
+            {(automationRules ?? []).length === 0 ? (
+              <div className="text-center py-3">
+                <p className="text-xs text-ink-muted mb-2.5">No active automations</p>
+                <Link href="/automation"><Button variant="secondary" size="sm">Set up automation</Button></Link>
               </div>
-              <div className="divide-y divide-surface-border">
-                {joiningThisWeek.map(c => {
-                  const days = Math.ceil((new Date(c.joining_at!).getTime() - Date.now()) / 86400000)
-                  return (
-                    <div key={c.id} className="flex items-center justify-between px-4 py-2.5 gap-3">
-                      <div className="min-w-0">
-                        <p className="text-xs font-semibold text-ink truncate">{c.name}</p>
-                        <p className="text-[11px] text-ink-muted truncate">{c.role_applied}</p>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className={cn('text-[11px] font-semibold', days <= 1 ? 'text-status-droppedText' : 'text-status-placedText')}>
-                          {days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : `in ${days}d`}
-                        </span>
-                        <Link href={`/candidates/${c.id}`} className="text-[11px] text-primary hover:underline">View</Link>
-                      </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {(automationRules ?? []).map(a => (
+                  <div key={a.id} className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-1.5 h-1.5 rounded-full bg-status-placed shrink-0" />
+                      <span className="text-xs text-ink-secondary truncate">{a.name}</span>
                     </div>
-                  )
-                })}
-              </div>
-              <div className="px-4 py-2.5 border-t border-surface-border">
-                <Link href="/automation?tab=joining_sequence" className="flex items-center gap-1 text-xs text-primary hover:underline font-medium">
-                  Send joining messages <ArrowRight className="w-3 h-3" />
+                    <div className="flex items-center gap-2 shrink-0">
+                      {a.run_count > 0 && <span className="text-[10px] text-ink-muted">{a.run_count}×</span>}
+                      <span className="text-[10px] font-medium text-status-placedText bg-status-placedBg px-1.5 py-0.5 rounded">Active</span>
+                    </div>
+                  </div>
+                ))}
+                <Link href="/automation" className="flex items-center gap-1 text-xs text-primary hover:underline font-medium mt-1">
+                  View all <ArrowRight className="w-3 h-3" />
                 </Link>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
-          {/* Reply efficiency — NEW */}
-          {efficiencyPct !== null && (
-            <div className="bg-surface-card border border-surface-border rounded-xl p-4">
-              <div className="flex items-center justify-between mb-3">
+          {/* Reply efficiency */}
+          {efficiencyPct !== null ? (
+            <div className="bg-surface-card border border-surface-border rounded-xl p-4 shrink-0">
+              <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4 text-status-placedText shrink-0" />
                   <h3 className="text-sm font-semibold text-ink">Reply Efficiency</h3>
@@ -439,24 +474,22 @@ export default async function DashboardPage({
                   style={{ width: `${efficiencyPct}%` }}
                 />
               </div>
-              <p className="text-[11px] text-ink-muted">{positiveOutcomes} of {outcomes.length} tracked replies got a positive response</p>
+              <p className="text-[11px] text-ink-muted">{positiveOutcomes} of {outcomes.length} replies got a response</p>
             </div>
-          )}
-
-          {efficiencyPct === null && outcomes.length === 0 && (
-            <div className="bg-surface-card border border-surface-border rounded-xl p-4">
-              <div className="flex items-center gap-1.5 mb-2">
+          ) : (
+            <div className="bg-surface-card border border-surface-border rounded-xl p-4 shrink-0">
+              <div className="flex items-center gap-1.5 mb-1.5">
                 <CheckCircle2 className="w-4 h-4 text-ink-muted shrink-0" />
                 <h3 className="text-sm font-semibold text-ink">Reply Efficiency</h3>
               </div>
-              <p className="text-xs text-ink-muted mb-2">Track reply outcomes to see your response rate here.</p>
+              <p className="text-xs text-ink-muted mb-2.5">Track reply outcomes to see your response rate here.</p>
               <Link href="/history"><Button variant="secondary" size="sm">Mark outcomes</Button></Link>
             </div>
           )}
 
-          {/* Upgrade (free plan) */}
+          {/* Upgrade — free plan */}
           {plan === 'free' && (
-            <div className="bg-surface-card border border-surface-border rounded-xl p-4">
+            <div className="bg-surface-card border border-surface-border rounded-xl p-4 shrink-0">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs font-medium text-ink-muted uppercase tracking-wide">Free Plan</p>
                 <Link href="/upgrade"><Button variant="secondary" size="sm">Upgrade</Button></Link>
@@ -473,57 +506,6 @@ export default async function DashboardPage({
                   <TrendingUp className="w-3 h-3" /> Running low — upgrade for unlimited replies
                 </p>
               )}
-            </div>
-          )}
-
-          {/* Active automations — fixed table name */}
-          <div className="bg-surface-card border border-surface-border rounded-xl p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-ink">Automations</h3>
-              <Link href="/automation" className="text-xs text-primary hover:underline font-medium">Manage</Link>
-            </div>
-            {(automationRules ?? []).length === 0 ? (
-              <div className="text-center py-4">
-                <p className="text-xs text-ink-muted mb-2">No active automations</p>
-                <Link href="/automation"><Button variant="secondary" size="sm">Set up automation</Button></Link>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {(automationRules ?? []).map(a => (
-                  <div key={a.id} className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-1.5 h-1.5 rounded-full bg-status-placed shrink-0" />
-                      <span className="text-xs text-ink-secondary truncate">{a.name}</span>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {a.run_count > 0 && <span className="text-[10px] text-ink-muted">{a.run_count} run{a.run_count !== 1 ? 's' : ''}</span>}
-                      <span className="text-[10px] font-medium text-status-placedText bg-status-placedBg px-1.5 py-0.5 rounded">Active</span>
-                    </div>
-                  </div>
-                ))}
-                <Link href="/automation" className="flex items-center gap-1 text-xs text-primary hover:underline font-medium mt-1">
-                  View all <ArrowRight className="w-3 h-3" />
-                </Link>
-              </div>
-            )}
-          </div>
-
-          {/* Open jobs */}
-          {(openJobs ?? []).length > 0 && (
-            <div className="bg-surface-card border border-surface-border rounded-xl p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-ink">Open Jobs</h3>
-                <Link href="/jobs" className="text-xs text-primary hover:underline font-medium">View all</Link>
-              </div>
-              <div className="flex flex-col gap-2">
-                {(openJobs ?? []).map(j => (
-                  <Link key={j.id} href={`/jobs/${j.id}`}
-                    className="flex items-center justify-between text-xs text-ink-secondary hover:text-primary transition-colors group">
-                    <span className="truncate">{j.title}</span>
-                    <ArrowRight className="w-3 h-3 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </Link>
-                ))}
-              </div>
             </div>
           )}
         </div>
