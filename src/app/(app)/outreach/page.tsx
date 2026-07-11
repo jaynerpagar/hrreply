@@ -485,10 +485,10 @@ function OutreachContent() {
         <p className="text-sm text-ink-secondary mt-0.5">Upload a resume or paste a JD — AI writes outreach that references the candidate&apos;s actual skills.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[420px_minmax(0,1fr)] gap-5 lg:flex-1 lg:min-h-0">
+      <div className="grid grid-cols-1 lg:grid-cols-[420px_minmax(0,1fr)] gap-5 lg:flex-1 lg:min-h-0 lg:grid-rows-[1fr]">
 
         {/* ══ LEFT PANE ═══════════════════════════════════════════════════ */}
-        <div className="bg-surface-card border border-surface-border rounded-xl shadow-card overflow-hidden lg:overflow-y-auto">
+        <div className="bg-surface-card border border-surface-border rounded-xl shadow-card overflow-hidden lg:overflow-y-auto lg:min-h-0">
 
           {/* ── CANDIDATE ────────────────────────────────────────────────── */}
           <Section
@@ -697,7 +697,7 @@ function OutreachContent() {
         </div>
 
         {/* ══ RIGHT PANE ══════════════════════════════════════════════════ */}
-        <div className="flex flex-col gap-4 min-w-0 lg:overflow-y-auto lg:pr-1">
+        <div className="flex flex-col gap-4 min-w-0 lg:overflow-y-auto lg:pr-1 lg:min-h-0">
 
           {error && (
             <div className="bg-status-droppedBg border border-status-dropped/30 rounded-xl px-4 py-3 text-sm text-status-droppedText flex items-start gap-2">
