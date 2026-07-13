@@ -5,7 +5,7 @@ import Link from 'next/link'
 import {
   Search, Plus, Pencil, Trash2, X, Phone, Briefcase,
   ChevronDown, Sparkles, Zap, Wand2, Brain, Loader2, AlertTriangle, History, Copy, Check,
-  FileText, UploadCloud, CheckCircle2, ExternalLink,
+  FileText, UploadCloud, CheckCircle2, ExternalLink, MoreHorizontal,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -343,6 +343,8 @@ export default function CandidatesClient({ initial }: { initial: Candidate[] }) 
   const [modal, setModal]           = useState<'add' | 'edit' | null>(null)
   const [editing, setEditing]       = useState<Candidate | null>(null)
   const [deleting, setDeleting]     = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<Candidate | null>(null)
+  const [menuFor, setMenuFor]       = useState<{ c: Candidate; x: number; y: number; up: boolean } | null>(null)
   const [insights, setInsights]     = useState<Record<string, InsightData | 'loading' | 'error'>>({})
   // Timeline state (#72)
   const [timelineCandidate, setTimelineCandidate] = useState<Candidate | null>(null)
@@ -368,6 +370,17 @@ export default function CandidatesClient({ initial }: { initial: Candidate[] }) 
     setTimeout(() => setCopiedTimelineId(null), 2000)
   }
 
+  function clearInsightErrorLater(id: string) {
+    setTimeout(() => {
+      setInsights(prev => {
+        if (prev[id] !== 'error') return prev
+        const next = { ...prev }
+        delete next[id]
+        return next
+      })
+    }, 4000)
+  }
+
   async function fetchInsight(c: Candidate) {
     if (insights[c.id] && insights[c.id] !== 'error') return
     setInsights(prev => ({ ...prev, [c.id]: 'loading' }))
@@ -379,9 +392,17 @@ export default function CandidatesClient({ initial }: { initial: Candidate[] }) 
       })
       const data = await res.json()
       setInsights(prev => ({ ...prev, [c.id]: res.ok ? data : 'error' }))
+      if (!res.ok) clearInsightErrorLater(c.id)
     } catch {
       setInsights(prev => ({ ...prev, [c.id]: 'error' }))
+      clearInsightErrorLater(c.id)
     }
+  }
+
+  function openMenu(e: React.MouseEvent, c: Candidate) {
+    const r  = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    const up = r.bottom + 260 > window.innerHeight
+    setMenuFor({ c, x: r.right, y: up ? r.top : r.bottom, up })
   }
 
   const filtered = useMemo(() => candidates.filter(c => {
@@ -442,8 +463,17 @@ export default function CandidatesClient({ initial }: { initial: Candidate[] }) 
           <input
             value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search by name, role, phone…"
-            className="w-full pl-9 pr-3 py-2 border border-surface-borderStrong rounded text-sm text-ink focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary bg-surface-card"
+            className="w-full pl-9 pr-8 py-2 border border-surface-borderStrong rounded text-sm text-ink focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary bg-surface-card"
           />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              title="Clear search"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-muted hover:text-ink transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
         <select
           value={stageFilter} onChange={e => setStageFilter(e.target.value as Stage | 'all')}
@@ -472,7 +502,11 @@ export default function CandidatesClient({ initial }: { initial: Candidate[] }) 
 
       {candidates.length > 0 && filtered.length === 0 && (
         <div className="bg-surface-card border border-surface-border rounded-lg shadow-card p-8 text-center">
-          <p className="text-ink-secondary text-sm">No candidates match your search.</p>
+          <p className="text-ink-secondary text-sm">
+            {search
+              ? <>No candidates match &ldquo;{search}&rdquo;.</>
+              : 'No candidates in this stage yet.'}
+          </p>
         </div>
       )}
 
@@ -493,7 +527,6 @@ export default function CandidatesClient({ initial }: { initial: Candidate[] }) 
               </thead>
               <tbody className="divide-y divide-surface-border">
                 {filtered.map(c => {
-                  const autoTab = STAGE_AUTO_TAB[c.stage]
                   const interviewLabel = c.interview_at
                     ? new Date(c.interview_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
                     : null
@@ -515,16 +548,18 @@ export default function CandidatesClient({ initial }: { initial: Candidate[] }) 
                       </td>
                       <td className="px-4 py-3 text-ink-secondary">{c.role_applied}</td>
                       <td className="px-4 py-3">
-                        <select
-                          value={c.stage}
-                          onChange={e => handleStageChange(c.id, e.target.value as Stage)}
-                          className="border-0 bg-transparent text-xs font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary rounded p-0"
-                          style={{ appearance: 'none' }}
-                          title="Change stage"
-                        >
-                          {STAGES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                        </select>
-                        <div className="mt-1"><StagePill stage={c.stage} /></div>
+                        <div className="relative inline-flex items-center gap-1 group/stage cursor-pointer" title="Change stage">
+                          <StagePill stage={c.stage} />
+                          <ChevronDown className="w-3 h-3 text-ink-muted group-hover/stage:text-ink transition-colors" />
+                          <select
+                            value={c.stage}
+                            onChange={e => handleStageChange(c.id, e.target.value as Stage)}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            aria-label="Change stage"
+                          >
+                            {STAGES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                          </select>
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-ink-secondary hidden md:table-cell">
                         {c.phone
@@ -596,71 +631,28 @@ export default function CandidatesClient({ initial }: { initial: Candidate[] }) 
                           >
                             <ExternalLink className="w-3.5 h-3.5" />
                           </Link>
-                          {/* Generate reply */}
-                          <a
-                            href={`/generator?context=${encodeURIComponent(`${c.name}, applying for ${c.role_applied}.`)}`}
-                            title="Generate reply"
+                          {/* Generate message — deep link with candidateId prefill */}
+                          <Link
+                            href={`/generator?candidateId=${c.id}`}
+                            title="Generate message"
                             className="p-1.5 rounded text-ink-muted hover:text-accent-text hover:bg-accent-soft transition-colors"
                           >
                             <Wand2 className="w-3.5 h-3.5" />
-                          </a>
-                          {/* Timeline (#72) */}
+                          </Link>
+                          {/* More actions */}
                           <button
-                            onClick={() => openTimeline(c)}
-                            title="Communication timeline"
-                            className="p-1.5 rounded text-ink-muted hover:text-primary hover:bg-primary-soft transition-colors"
-                          >
-                            <History className="w-3.5 h-3.5" />
-                          </button>
-                          {/* Personalized outreach */}
-                          <a
-                            href={`/outreach?candidateId=${c.id}`}
-                            title="Personalized outreach"
-                            className="p-1.5 rounded text-ink-muted hover:text-primary hover:bg-primary-soft transition-colors"
-                          >
-                            <Sparkles className="w-3.5 h-3.5" />
-                          </a>
-                          {/* Automation */}
-                          <a
-                            href={`/automation?candidateId=${c.id}${autoTab ? `&tab=${autoTab}` : ''}`}
-                            title="Auto-generate message"
-                            className="p-1.5 rounded text-ink-muted hover:text-accent-text hover:bg-accent-soft transition-colors"
-                          >
-                            <Zap className="w-3.5 h-3.5" />
-                          </a>
-                          {/* AI Insights */}
-                          <button
-                            onClick={() => fetchInsight(c)}
-                            title="AI insights"
-                            disabled={insight === 'loading'}
+                            onClick={e => openMenu(e, c)}
+                            title="More actions"
                             className={cn(
                               'p-1.5 rounded transition-colors',
-                              typeof insight === 'object'
-                                ? 'text-accent-text bg-accent-soft'
-                                : 'text-ink-muted hover:text-accent-text hover:bg-accent-soft'
+                              menuFor?.c.id === c.id
+                                ? 'text-ink bg-surface-sunken'
+                                : 'text-ink-muted hover:text-ink hover:bg-surface-sunken'
                             )}
                           >
                             {insight === 'loading'
                               ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              : <Brain className="w-3.5 h-3.5" />
-                            }
-                          </button>
-                          {/* Edit */}
-                          <button
-                            onClick={() => { setEditing(c); setModal('edit') }}
-                            title="Edit"
-                            className="p-1.5 rounded text-ink-muted hover:text-primary hover:bg-primary-soft transition-colors"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
-                          {/* Delete */}
-                          <button
-                            onClick={() => handleDelete(c.id)}
-                            disabled={deleting === c.id}
-                            title="Delete"
-                            className="p-1.5 rounded text-ink-muted hover:text-status-dropped hover:bg-status-droppedBg transition-colors disabled:opacity-40"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
+                              : <MoreHorizontal className="w-3.5 h-3.5" />}
                           </button>
                         </div>
                       </td>
@@ -672,6 +664,85 @@ export default function CandidatesClient({ initial }: { initial: Candidate[] }) 
           </div>
           <div className="px-4 py-2.5 border-t border-surface-border text-xs text-ink-muted flex items-center justify-between">
             <span>{filtered.length} of {candidates.length} candidate{candidates.length !== 1 ? 's' : ''}</span>
+          </div>
+        </div>
+      )}
+
+      {/* ── Row actions menu ──────────────────────────────────────────── */}
+      {menuFor && (() => {
+        const c = menuFor.c
+        const autoTab = STAGE_AUTO_TAB[c.stage]
+        const insight = insights[c.id]
+        const itemCls = 'w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] text-ink-secondary hover:text-ink hover:bg-surface-sunken transition-colors text-left'
+        return (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setMenuFor(null)} />
+            <div
+              className="fixed z-50 w-56 bg-surface-card border border-surface-border rounded-xl shadow-raised py-1.5 overflow-hidden"
+              style={{
+                left: Math.max(8, menuFor.x - 224),
+                ...(menuFor.up
+                  ? { bottom: window.innerHeight - menuFor.y + 4 }
+                  : { top: menuFor.y + 4 }),
+              }}
+            >
+              <button className={itemCls} onClick={() => { setMenuFor(null); openTimeline(c) }}>
+                <History className="w-3.5 h-3.5 shrink-0" /> Communication timeline
+              </button>
+              <Link href={`/outreach?candidateId=${c.id}`} className={itemCls} onClick={() => setMenuFor(null)}>
+                <Sparkles className="w-3.5 h-3.5 shrink-0" /> Personalized outreach
+              </Link>
+              <Link href={`/automation?candidateId=${c.id}${autoTab ? `&tab=${autoTab}` : ''}`} className={itemCls} onClick={() => setMenuFor(null)}>
+                <Zap className="w-3.5 h-3.5 shrink-0" /> Run automation
+              </Link>
+              <button
+                className={itemCls}
+                disabled={insight === 'loading'}
+                onClick={() => { setMenuFor(null); fetchInsight(c) }}
+              >
+                <Brain className="w-3.5 h-3.5 shrink-0" /> AI insights
+              </button>
+              <button className={itemCls} onClick={() => { setMenuFor(null); setEditing(c); setModal('edit') }}>
+                <Pencil className="w-3.5 h-3.5 shrink-0" /> Edit details
+              </button>
+              <div className="h-px bg-surface-border my-1.5" />
+              <button
+                className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] text-status-droppedText hover:bg-status-droppedBg transition-colors text-left"
+                onClick={() => { setMenuFor(null); setConfirmDelete(c) }}
+              >
+                <Trash2 className="w-3.5 h-3.5 shrink-0" /> Delete candidate
+              </button>
+            </div>
+          </>
+        )
+      })()}
+
+      {/* ── Delete confirmation ───────────────────────────────────────── */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-ink/40" onClick={() => setConfirmDelete(null)} />
+          <div className="relative bg-surface-card rounded-xl shadow-raised w-full max-w-sm z-10 p-5">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-9 h-9 rounded-full bg-status-droppedBg flex items-center justify-center shrink-0">
+                <Trash2 className="w-4 h-4 text-status-droppedText" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-ink">Delete {confirmDelete.name}?</h3>
+                <p className="text-sm text-ink-secondary mt-1 leading-relaxed">
+                  This permanently removes their profile, notes and message history. This can&rsquo;t be undone.
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(null)}>Cancel</Button>
+              <button
+                onClick={async () => { await handleDelete(confirmDelete.id); setConfirmDelete(null) }}
+                disabled={deleting === confirmDelete.id}
+                className="px-3.5 py-1.5 rounded-lg bg-status-dropped text-white text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                {deleting === confirmDelete.id ? 'Deleting…' : 'Delete candidate'}
+              </button>
+            </div>
           </div>
         </div>
       )}

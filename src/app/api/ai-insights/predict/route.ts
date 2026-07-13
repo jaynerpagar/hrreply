@@ -43,15 +43,24 @@ Guidelines:
 - ghosting_risk: high=5+ days no contact + active stage, medium=3-4 days, low=recently contacted
 - joining_probability: only for offer_sent stage (factor in notice period, offer expiry, competition); null for other stages`
 
-  const msg = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 256,
-    messages: [{ role: 'user', content: prompt }],
-  })
+  let msg
+  try {
+    msg = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 256,
+      messages: [{ role: 'user', content: prompt }],
+    })
+  } catch {
+    return NextResponse.json({ error: 'AI service unavailable — try again shortly' }, { status: 502 })
+  }
 
   const raw = msg.content[0].type === 'text' ? msg.content[0].text.trim() : ''
+  // Model may wrap JSON in ```json fences despite instructions — extract the object
+  const start = raw.indexOf('{')
+  const end   = raw.lastIndexOf('}')
+  const jsonStr = start >= 0 && end > start ? raw.slice(start, end + 1) : raw
   try {
-    const data = JSON.parse(raw)
+    const data = JSON.parse(jsonStr)
     return NextResponse.json(data)
   } catch {
     return NextResponse.json({ error: 'Failed to parse prediction' }, { status: 500 })

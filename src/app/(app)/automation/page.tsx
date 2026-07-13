@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import {
   Plus, Zap, Trash2, Play, BellOff, Calendar, Clock,
   UserCheck, ArrowRightLeft, RefreshCw, Copy, Check, Wand2,
@@ -333,10 +334,11 @@ function SharedFields({ template, inputs, set }: {
 
 // ── Run Now Panel ──────────────────────────────────────────────────────────
 
-function RunNowPanel({ rule, onClose, onRan }: {
+function RunNowPanel({ rule, onClose, onRan, initialCandidateId }: {
   rule: Automation
   onClose: () => void
   onRan: (updatedRule: Automation) => void
+  initialCandidateId?: string | null
 }) {
   const [runMode, setRunMode] = useState<'single' | 'bulk'>('single')
 
@@ -364,9 +366,18 @@ function RunNowPanel({ rule, onClose, onRan }: {
   useEffect(() => {
     fetch('/api/candidates')
       .then(r => r.json())
-      .then(d => setCandidates(d.candidates ?? []))
+      .then(d => {
+        const list: Candidate[] = d.candidates ?? []
+        setCandidates(list)
+        // Deep link from Candidates page: preselect that candidate
+        if (initialCandidateId) {
+          const match = list.find(c => c.id === initialCandidateId)
+          if (match) pickCandidate(match)
+        }
+      })
       .catch(() => {/* silently ignore */})
       .finally(() => setCandidatesLoading(false))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const filteredCandidates = candidates.filter(c => {
@@ -946,12 +957,14 @@ function RuleCard({ rule, isSelected, onSelect, onToggle, onDelete }: {
 
 // ── Main Page ──────────────────────────────────────────────────────────────
 
-export default function AutomationPage() {
+function AutomationContent() {
+  const searchParams = useSearchParams()
   const [automations, setAutomations] = useState<Automation[]>([])
   const [loading, setLoading]         = useState(true)
   const [selectedId, setSelectedId]   = useState<string | null>(null)
   const [mode, setMode]               = useState<'detail' | 'run' | 'create'>('detail')
   const [presetInitial, setPresetInitial] = useState<Partial<Automation> | undefined>(undefined)
+  const deepLinkCandidateId = searchParams.get('candidateId')
 
   const fetchAutomations = useCallback(async () => {
     try {
@@ -963,6 +976,15 @@ export default function AutomationPage() {
   }, [])
 
   useEffect(() => { fetchAutomations() }, [fetchAutomations])
+
+  // Deep link: when arriving with ?candidateId=, open Run Now on the first active rule
+  useEffect(() => {
+    if (!deepLinkCandidateId || loading || automations.length === 0 || selectedId) return
+    const target = automations.find(a => a.is_active) ?? automations[0]
+    setSelectedId(target.id)
+    setMode('run')
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deepLinkCandidateId, loading, automations])
 
   const selected = automations.find(a => a.id === selectedId) ?? null
 
@@ -1065,7 +1087,7 @@ export default function AutomationPage() {
           )}
 
           {mode === 'run' && selected && (
-            <RunNowPanel rule={selected} onClose={() => setMode('detail')} onRan={handleRan} />
+            <RunNowPanel rule={selected} onClose={() => setMode('detail')} onRan={handleRan} initialCandidateId={deepLinkCandidateId} />
           )}
 
           {mode === 'detail' && selected && (
@@ -1159,5 +1181,13 @@ export default function AutomationPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function AutomationPage() {
+  return (
+    <Suspense>
+      <AutomationContent />
+    </Suspense>
   )
 }

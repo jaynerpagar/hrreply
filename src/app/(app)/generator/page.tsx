@@ -356,8 +356,24 @@ function GeneratorContent() {
   // Fetch candidates for memory feature
   useEffect(() => {
     fetch('/api/candidates').then(r => r.json()).then(data => {
-      if (Array.isArray(data)) setCandidates(data)
+      const list = Array.isArray(data) ? data : data?.candidates
+      if (Array.isArray(list)) setCandidates(list)
     }).catch(() => {})
+  }, [])
+
+  // Deep link from Candidates page: ?candidateId= prefills name + role
+  useEffect(() => {
+    const cid = searchParams.get('candidateId')
+    if (!cid) return
+    fetch(`/api/candidates/${cid}`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(c => {
+        if (!c?.name) return
+        setSelectedCandidate(c.id)
+        setFields(prev => ({ ...prev, candidateName: c.name, role: c.role_applied ?? '' }))
+      })
+      .catch(() => {})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Smart suggestions: watch fields for keywords
@@ -688,7 +704,12 @@ function GeneratorContent() {
                     <UserCheck className="w-3.5 h-3.5 text-ink-muted shrink-0" />
                     <select
                       value={selectedCandidate}
-                      onChange={e => setSelectedCandidate(e.target.value)}
+                      onChange={e => {
+                        const id = e.target.value
+                        setSelectedCandidate(id)
+                        const c = candidates.find(x => x.id === id)
+                        if (c) setFields(prev => ({ ...prev, candidateName: c.name, role: c.role_applied ?? '' }))
+                      }}
                       className="flex-1 border border-surface-border rounded-lg px-2.5 py-1.5 text-sm text-ink bg-surface-sunken focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition"
                     >
                       <option value="">Select candidate to include their history…</option>
