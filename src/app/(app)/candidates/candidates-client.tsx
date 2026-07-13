@@ -528,10 +528,10 @@ export default function CandidatesClient({ initial }: { initial: Candidate[] }) 
               <tbody className="divide-y divide-surface-border">
                 {filtered.map(c => {
                   const interviewLabel = c.interview_at
-                    ? new Date(c.interview_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+                    ? new Date(c.interview_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })
                     : null
                   const joiningLabel = c.joining_at
-                    ? new Date(c.joining_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+                    ? new Date(c.joining_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' })
                     : null
 
                   const insight      = insights[c.id]
@@ -543,7 +543,7 @@ export default function CandidatesClient({ initial }: { initial: Candidate[] }) 
                       <td className="px-4 py-3">
                         <p className="font-medium text-ink">{c.name}</p>
                         <p className="text-xs text-ink-muted mt-0.5">
-                          Added {new Date(c.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                          Added {new Date(c.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' })}
                         </p>
                       </td>
                       <td className="px-4 py-3 text-ink-secondary">{c.role_applied}</td>
@@ -798,7 +798,7 @@ export default function CandidatesClient({ initial }: { initial: Candidate[] }) 
                                 {REPLY_TYPE_LABELS[reply.reply_type] ?? reply.reply_type}
                               </span>
                               <span className="text-[11px] text-ink-muted shrink-0">
-                                {new Date(reply.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                                {new Date(reply.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' })}
                               </span>
                             </div>
                             <div className="bg-surface-sunken border border-surface-border rounded-lg p-3 group relative">

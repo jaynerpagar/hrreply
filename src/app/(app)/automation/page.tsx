@@ -117,11 +117,11 @@ function timeAgo(iso: string): string {
 
 function fmtDate(iso: string | null): string {
   if (!iso) return ''
-  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'long' })
+  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', timeZone: 'Asia/Kolkata' })
 }
 function fmtTime(iso: string | null): string {
   if (!iso) return ''
-  return new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+  return new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })
 }
 function daysSince(iso: string | null): string {
   if (!iso) return '5'
@@ -964,6 +964,7 @@ function AutomationContent() {
   const [selectedId, setSelectedId]   = useState<string | null>(null)
   const [mode, setMode]               = useState<'detail' | 'run' | 'create'>('detail')
   const [presetInitial, setPresetInitial] = useState<Partial<Automation> | undefined>(undefined)
+  const [confirmDeleteRule, setConfirmDeleteRule] = useState<Automation | null>(null)
   const deepLinkCandidateId = searchParams.get('candidateId')
 
   const fetchAutomations = useCallback(async () => {
@@ -1022,6 +1023,41 @@ function AutomationContent() {
 
   return (
     <div className="flex flex-col lg:h-full">
+
+      {/* Delete rule confirmation */}
+      {confirmDeleteRule && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-ink/40" onClick={() => setConfirmDeleteRule(null)} />
+          <div className="relative bg-surface-card rounded-xl shadow-raised w-full max-w-sm z-10 p-5">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-9 h-9 rounded-full bg-status-droppedBg flex items-center justify-center shrink-0">
+                <Trash2 className="w-4 h-4 text-status-droppedText" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-ink">Delete rule &ldquo;{confirmDeleteRule.name}&rdquo;?</h3>
+                <p className="text-sm text-ink-secondary mt-1 leading-relaxed">
+                  This removes the rule and its run count. Your candidates and generated messages are not affected. This can&rsquo;t be undone.
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setConfirmDeleteRule(null)}
+                className="px-3.5 py-1.5 rounded-lg text-sm font-semibold text-ink-secondary hover:text-ink hover:bg-surface-sunken transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => { deleteRule(confirmDeleteRule.id); setConfirmDeleteRule(null) }}
+                className="px-3.5 py-1.5 rounded-lg bg-status-dropped text-white text-sm font-semibold hover:opacity-90 transition-opacity"
+              >
+                Delete rule
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="mb-5 shrink-0 flex items-start justify-between gap-4">
         <div>
@@ -1075,7 +1111,7 @@ function AutomationContent() {
             <RuleCard key={rule.id} rule={rule} isSelected={selectedId === rule.id}
               onSelect={() => { setSelectedId(rule.id); setMode('detail') }}
               onToggle={() => toggleRule(rule)}
-              onDelete={() => deleteRule(rule.id)} />
+              onDelete={() => setConfirmDeleteRule(rule)} />
           ))}
         </div>
 
@@ -1137,7 +1173,7 @@ function AutomationContent() {
                   {selected.is_active ? <ToggleLeft className="w-4 h-4" /> : <ToggleRight className="w-4 h-4 text-accent-text" />}
                   {selected.is_active ? 'Pause rule' : 'Activate rule'}
                 </button>
-                <button onClick={() => deleteRule(selected.id)}
+                <button onClick={() => setConfirmDeleteRule(selected)}
                   className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-surface-border text-xs font-semibold text-ink-muted hover:text-status-droppedText hover:border-status-dropped/30 transition-all">
                   <Trash2 className="w-3.5 h-3.5" />Delete
                 </button>

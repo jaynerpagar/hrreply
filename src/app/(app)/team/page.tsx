@@ -388,7 +388,7 @@ export default function TeamPage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-ink truncate">{inv.email}</p>
                       <p className="text-xs text-ink-muted">
-                        Invited as {inv.role} · expires {new Date(inv.expires_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                        Invited as {inv.role} · expires {new Date(inv.expires_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' })}
                       </p>
                     </div>
                     <button

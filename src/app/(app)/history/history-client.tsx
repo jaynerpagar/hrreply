@@ -39,26 +39,26 @@ const OUTCOME_BADGE: Record<Outcome, { label: string; cls: string }> = {
   declined:  { label: 'Declined',   cls: 'bg-status-processBg text-status-processText' },
 }
 
+// IST is UTC+5:30 with no DST — fixed-offset day buckets keep server and
+// client HTML identical, avoiding hydration mismatches
+const IST_OFFSET_MS = 5.5 * 3600000
+const istDay = (t: number) => Math.floor((t + IST_OFFSET_MS) / 86400000)
+
 function dateGroup(iso: string): 'today' | 'week' | 'earlier' {
-  const d     = new Date(iso)
-  const now   = new Date()
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const week  = new Date(today.getTime() - 6 * 86400000)
-  if (d >= today) return 'today'
-  if (d >= week)  return 'week'
+  const diff = istDay(Date.now()) - istDay(new Date(iso).getTime())
+  if (diff <= 0) return 'today'
+  if (diff <= 6) return 'week'
   return 'earlier'
 }
 
 function fmtDate(iso: string) {
   const d = new Date(iso)
-  const now = new Date()
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const isToday = d >= today
+  const isToday = istDay(Date.now()) === istDay(d.getTime())
   if (isToday) {
-    return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+    return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })
   }
-  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) +
-    ' ' + d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' }) +
+    ' ' + d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })
 }
 
 export default function HistoryClient({ replies }: { replies: Reply[] }) {
@@ -122,14 +122,13 @@ export default function HistoryClient({ replies }: { replies: Reply[] }) {
   const filtered = useMemo(() => {
     const q        = search.toLowerCase()
     const weekAgo  = new Date(Date.now() - 7 * 86400000)
-    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0)
 
     return replies.filter(r => {
       if (typeFilter !== 'all' && r.reply_type !== typeFilter) return false
       if (outcomeFilter === 'marked'   && !outcomes[r.id]) return false
       if (outcomeFilter === 'unmarked' && outcomes[r.id])  return false
       if (outcomeFilter !== 'all' && outcomeFilter !== 'marked' && outcomeFilter !== 'unmarked' && outcomes[r.id] !== outcomeFilter) return false
-      if (dateFilter === 'today' && new Date(r.created_at) < todayStart) return false
+      if (dateFilter === 'today' && istDay(new Date(r.created_at).getTime()) !== istDay(Date.now())) return false
       if (dateFilter === 'week'  && new Date(r.created_at) < weekAgo)    return false
       if (q && !r.context_input.toLowerCase().includes(q) &&
                !r.generated_text.toLowerCase().includes(q) &&

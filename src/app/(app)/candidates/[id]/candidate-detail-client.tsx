@@ -240,10 +240,10 @@ export default function CandidateDetailClient({ candidate, initialReplies, initi
                   { label: 'Experience', value: candidate.experience },
                   { label: 'Notice Period', value: candidate.notice_period },
                   { label: 'Phone', value: candidate.phone },
-                  { label: 'Interview Date', value: candidate.interview_at ? new Date(candidate.interview_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : null },
-                  { label: 'Offer Expiry', value: candidate.offer_expiry_at ? new Date(candidate.offer_expiry_at).toLocaleDateString('en-IN', { dateStyle: 'medium' }) : null },
-                  { label: 'Joining Date', value: candidate.joining_at ? new Date(candidate.joining_at).toLocaleDateString('en-IN', { dateStyle: 'medium' }) : null },
-                  { label: 'Added', value: new Date(candidate.created_at).toLocaleDateString('en-IN', { dateStyle: 'medium' }) },
+                  { label: 'Interview Date', value: candidate.interview_at ? new Date(candidate.interview_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' }) : null },
+                  { label: 'Offer Expiry', value: candidate.offer_expiry_at ? new Date(candidate.offer_expiry_at).toLocaleDateString('en-IN', { dateStyle: 'medium', timeZone: 'Asia/Kolkata' }) : null },
+                  { label: 'Joining Date', value: candidate.joining_at ? new Date(candidate.joining_at).toLocaleDateString('en-IN', { dateStyle: 'medium', timeZone: 'Asia/Kolkata' }) : null },
+                  { label: 'Added', value: new Date(candidate.created_at).toLocaleDateString('en-IN', { dateStyle: 'medium', timeZone: 'Asia/Kolkata' }) },
                 ].filter(f => f.value).map(({ label, value }) => (
                   <div key={label}>
                     <p className="text-xs text-ink-muted mb-0.5">{label}</p>
@@ -301,7 +301,7 @@ export default function CandidateDetailClient({ candidate, initialReplies, initi
                         </p>
                         {isCurrent && candidate.last_contacted_at && (
                           <p className="text-[11px] text-ink-muted">
-                            Last contact: {new Date(candidate.last_contacted_at).toLocaleDateString('en-IN', { dateStyle: 'short' })}
+                            Last contact: {new Date(candidate.last_contacted_at).toLocaleDateString('en-IN', { dateStyle: 'short', timeZone: 'Asia/Kolkata' })}
                           </p>
                         )}
                       </div>
@@ -363,7 +363,7 @@ export default function CandidateDetailClient({ candidate, initialReplies, initi
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-ink-muted">{new Date(r.created_at).toLocaleDateString('en-IN', { dateStyle: 'short' })}</span>
+                      <span className="text-xs text-ink-muted">{new Date(r.created_at).toLocaleDateString('en-IN', { dateStyle: 'short', timeZone: 'Asia/Kolkata' })}</span>
                       <button
                         onClick={() => copyText(r.generated_reply, r.id)}
                         className="p-1.5 rounded text-ink-muted hover:text-ink hover:bg-surface-sunken transition-colors"
@@ -415,7 +415,7 @@ export default function CandidateDetailClient({ candidate, initialReplies, initi
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
-                  <p className="text-[11px] text-ink-muted mt-2">{new Date(n.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</p>
+                  <p className="text-[11px] text-ink-muted mt-2">{new Date(n.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' })}</p>
                 </div>
               ))}
             </div>

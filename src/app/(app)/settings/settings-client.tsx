@@ -31,7 +31,7 @@ interface Props {
 
 function formatDate(iso: string | null) {
   if (!iso) return null
-  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
+  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' })
 }
 
 export default function SettingsClient({ initialName, initialCompany, initialTone, plan, subscription, initialBrandVoice, initialPersonalStyle }: Props) {

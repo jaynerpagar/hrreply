@@ -627,7 +627,7 @@ function VersionHistoryModal({
                     <div>
                       <p className="text-sm font-semibold text-ink">v{v.version} — {v.name}</p>
                       <p className="text-xs text-ink-muted">
-                        by {v.changed_by_name} · {new Date(v.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        by {v.changed_by_name} · {new Date(v.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}
                       </p>
                     </div>
                     <button
