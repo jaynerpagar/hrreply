@@ -295,7 +295,7 @@ export default async function DashboardPage({
                       <div key={c.id} className="flex items-center justify-between px-4 py-3 gap-4">
                         <div>
                           <p className="text-sm font-medium text-ink">{c.name}</p>
-                          <p className="text-xs text-ink-secondary">{new Date(c.interview_at!).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}</p>
+                          <p className="text-xs text-ink-secondary">{new Date(c.interview_at!).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Asia/Kolkata' })}</p>
                         </div>
                         <div className="flex items-center gap-3 shrink-0">
                           <span className="text-xs font-medium text-status-processText">in {hrs}h</span>
