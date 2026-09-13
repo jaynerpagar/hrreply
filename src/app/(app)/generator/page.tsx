@@ -8,6 +8,7 @@ import {
   Mic, MicOff, ImageIcon, UserCheck, Loader2, Layers2, Compass, Shuffle, AlertTriangle, ChevronLeft,
 } from 'lucide-react'
 import { UpsellModal } from '@/components/ui/upsell-modal'
+import { WhatsAppButton } from '@/components/ui/WhatsAppButton'
 import { AnalyzeBar } from '@/components/analyze'
 import { Tone, ReplyType, MessageFormat, RewriteStyle, SubjectLine } from '@/types'
 import { FORMAT_LABELS, REWRITE_LABELS, REPLY_TYPE_LABELS, cn } from '@/lib/utils'
@@ -1140,6 +1141,7 @@ function GeneratorContent() {
                 )}>
                   {copied ? <><Check className="w-3.5 h-3.5" />Copied!</> : <><Copy className="w-3.5 h-3.5" />Copy message</>}
                 </button>
+                <WhatsAppButton message={displayOutput} />
                 <button onClick={() => { setEditing(true); setOutputFresh(false) }}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-surface-border bg-surface-page text-xs font-semibold text-ink-secondary hover:border-primary hover:text-primary transition-all">
                   <Pencil className="w-3.5 h-3.5" /> Edit

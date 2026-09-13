@@ -9,6 +9,7 @@ import {
   ToggleLeft, ToggleRight, AlertCircle, Search, Users,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { WhatsAppButton } from '@/components/ui/WhatsAppButton'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -164,7 +165,7 @@ function TriggerIcon({ type, className }: { type: TriggerType; className?: strin
   return <Icon className={className} />
 }
 
-function MessageCard({ label, sublabel, message }: { label: string; sublabel?: string; message: string }) {
+function MessageCard({ label, sublabel, message, phone }: { label: string; sublabel?: string; message: string; phone?: string }) {
   const [copied, setCopied] = useState(false)
   function copy() { navigator.clipboard.writeText(message); setCopied(true); setTimeout(() => setCopied(false), 2000) }
   return (
@@ -174,12 +175,15 @@ function MessageCard({ label, sublabel, message }: { label: string; sublabel?: s
           <span className="text-xs font-bold text-ink">{label}</span>
           {sublabel && <span className="text-[11px] text-ink-muted ml-2">{sublabel}</span>}
         </div>
-        <button onClick={copy}
-          className={cn('flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg border transition-all',
-            copied ? 'border-accent bg-accent-soft text-accent-text' : 'border-surface-border bg-white text-ink-secondary hover:border-primary hover:text-primary'
-          )}>
-          {copied ? <><Check className="w-3 h-3" />Copied</> : <><Copy className="w-3 h-3" />Copy</>}
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={copy}
+            className={cn('flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg border transition-all',
+              copied ? 'border-accent bg-accent-soft text-accent-text' : 'border-surface-border bg-white text-ink-secondary hover:border-primary hover:text-primary'
+            )}>
+            {copied ? <><Check className="w-3 h-3" />Copied</> : <><Copy className="w-3 h-3" />Copy</>}
+          </button>
+          <WhatsAppButton message={message} phone={phone} />
+        </div>
       </div>
       <div className="px-4 py-4 bg-white">
         <p className="text-sm text-ink leading-[1.8] whitespace-pre-wrap">{message}</p>
@@ -580,19 +584,19 @@ function RunNowPanel({ rule, onClose, onRan, initialCandidateId }: {
           {!loading && result && 'first' in result && (
             <div className="flex flex-col gap-2 shrink-0">
               {([['1st Follow-up', result.first],['2nd Follow-up', result.second],['Final Follow-up', result.final]] as [string,string][]).map(([lbl,msg]) => (
-                <MessageCard key={lbl} label={lbl} message={msg} />
+                <MessageCard key={lbl} label={lbl} message={msg} phone={picked?.phone ?? undefined} />
               ))}
             </div>
           )}
           {!loading && result && 'sevenDay' in result && (
             <div className="flex flex-col gap-2 shrink-0">
               {([['7 Days Before', result.sevenDay],['3 Days Before', result.threeDay],['1 Day Before', result.oneDay]] as [string,string][]).map(([lbl,msg]) => (
-                <MessageCard key={lbl} label={lbl} message={msg} />
+                <MessageCard key={lbl} label={lbl} message={msg} phone={picked?.phone ?? undefined} />
               ))}
             </div>
           )}
           {!loading && result && 'message' in result && (
-            <div className="shrink-0"><MessageCard label={templateLabel(rule.template_type)} message={(result as SingleResult).message} /></div>
+            <div className="shrink-0"><MessageCard label={templateLabel(rule.template_type)} message={(result as SingleResult).message} phone={picked?.phone ?? undefined} /></div>
           )}
         </div>
       )}
@@ -699,19 +703,19 @@ function RunNowPanel({ rule, onClose, onRan, initialCandidateId }: {
                   {br.result && 'first' in br.result && (
                     <div className="flex flex-col gap-1.5">
                       {([['1st', br.result.first],['2nd', br.result.second],['Final', br.result.final]] as [string,string][]).map(([lbl,msg]) => (
-                        <MessageCard key={lbl} label={`${lbl} Follow-up`} message={msg} />
+                        <MessageCard key={lbl} label={`${lbl} Follow-up`} message={msg} phone={candidates.find(c => c.id === br.candidateId)?.phone ?? undefined} />
                       ))}
                     </div>
                   )}
                   {br.result && 'sevenDay' in br.result && (
                     <div className="flex flex-col gap-1.5">
                       {([['7-Day', br.result.sevenDay],['3-Day', br.result.threeDay],['1-Day', br.result.oneDay]] as [string,string][]).map(([lbl,msg]) => (
-                        <MessageCard key={lbl} label={`${lbl} Message`} message={msg} />
+                        <MessageCard key={lbl} label={`${lbl} Message`} message={msg} phone={candidates.find(c => c.id === br.candidateId)?.phone ?? undefined} />
                       ))}
                     </div>
                   )}
                   {br.result && 'message' in br.result && (
-                    <MessageCard label={br.name} message={(br.result as SingleResult).message} />
+                    <MessageCard label={br.name} message={(br.result as SingleResult).message} phone={candidates.find(c => c.id === br.candidateId)?.phone ?? undefined} />
                   )}
                 </div>
               ))}

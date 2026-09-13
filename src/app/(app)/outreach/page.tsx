@@ -8,6 +8,7 @@ import {
   Mail, MessageCircle, Link2, ScrollText, Users, Wand2, X,
 } from 'lucide-react'
 import { UpsellModal } from '@/components/ui/upsell-modal'
+import { WhatsAppButton } from '@/components/ui/WhatsAppButton'
 import { AnalyzeBar } from '@/components/analyze'
 import { cn } from '@/lib/utils'
 import type { CandidateProfile, JobProfile, CompanySnapshot, OutreachMessages } from '@/types'
@@ -761,6 +762,7 @@ function OutreachContent() {
                 >
                   {copied ? <><Check className="w-3.5 h-3.5" />Copied!</> : <><Copy className="w-3.5 h-3.5" />Copy</>}
                 </button>
+                {activeTab === 'whatsapp' && <WhatsAppButton message={outreach[activeTab] ?? ''} />}
                 <AnalyzeBar
                   text={outreach[activeTab]}
                   channel={activeTab === 'whatsapp' ? 'whatsapp' : 'email'}
