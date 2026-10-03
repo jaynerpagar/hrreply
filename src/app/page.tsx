@@ -172,7 +172,7 @@ export default function LandingPage() {
                 AI reply assistant for Indian HR
               </span>
 
-              <h1 className="text-4xl sm:text-5xl lg:text-[52px] font-extrabold tracking-tight leading-[1.08] mb-6">
+              <h1 className="text-4xl sm:text-5xl lg:text-[52px] font-extrabold tracking-tight leading-[1.08] text-white mb-6">
                 Stop copy-pasting.<br />
                 <span className="text-accent">Reply smarter.</span>
               </h1>
