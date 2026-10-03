@@ -51,7 +51,7 @@ const PLANS = [
     desc: '25 AI replies per month. Resets every 30 days. No credit card needed.',
     features: [
       { label: '25 replies per month', ok: true },
-      { label: 'All 20+ base templates', ok: true },
+      { label: 'All 60+ base templates', ok: true },
       { label: 'English + Hinglish tones', ok: true },
       { label: 'Reply history (30 days)', ok: true },
       { label: 'Candidate tracker', ok: false },

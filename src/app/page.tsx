@@ -21,7 +21,7 @@ const FEATURES = [
   },
   {
     icon: BookOpen,
-    title: '20+ HR templates',
+    title: '60+ HR templates',
     desc: 'Offer letter, rejection, interview invite, reschedule — every scenario covered.',
     gradient: 'from-blue-500/10 to-cyan-500/5',
     iconColor: 'text-blue-400',
@@ -76,7 +76,7 @@ const PLANS = [
     name: 'Free',
     price: '₹0',
     desc: '25 replies per month. No credit card.',
-    features: ['25 AI replies/month', 'All 20+ templates', 'Formal + Hinglish tones', 'Reply history (30 days)'],
+    features: ['25 AI replies/month', 'All 60+ templates', 'Formal + Hinglish tones', 'Reply history (30 days)'],
     cta: 'Get started free',
     href: '/login?mode=signup',
     featured: false,
@@ -126,7 +126,7 @@ const TESTIMONIALS = [
 
 const STATS = [
   { value: '10,000+', label: 'Messages generated' },
-  { value: '20+', label: 'HR templates' },
+  { value: '60+', label: 'HR templates' },
   { value: '3', label: 'Tones: Formal, Friendly, Hinglish' },
   { value: '<3s', label: 'Time to generate' },
 ]

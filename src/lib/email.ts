@@ -55,7 +55,7 @@ function welcomeHtml(name: string) {
                     ${[
                       ['✦', 'Generate rejection, offer, and follow-up messages instantly'],
                       ['✦', 'Choose between Formal English, Friendly English, and Hinglish'],
-                      ['✦', 'Pick from 20+ HR templates for every situation'],
+                      ['✦', 'Pick from 60+ HR templates for every situation'],
                       ['✦', 'Track your candidate pipeline in one place'],
                     ].map(([icon, text]) => `
                     <tr>
