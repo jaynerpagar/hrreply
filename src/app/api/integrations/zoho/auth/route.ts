@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createOAuthState, OAUTH_STATE_MAX_AGE, ZOHO_STATE_COOKIE } from '@/lib/oauth-state'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.hrreply.in'
 
@@ -19,5 +20,16 @@ export async function GET() {
   authUrl.searchParams.set('access_type', 'offline')
   authUrl.searchParams.set('prompt', 'consent')
 
-  return NextResponse.redirect(authUrl.toString())
+  const { state, cookieValue } = createOAuthState(user.id)
+  authUrl.searchParams.set('state', state)
+
+  const res = NextResponse.redirect(authUrl.toString())
+  res.cookies.set(ZOHO_STATE_COOKIE, cookieValue, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax', // sent on Zoho's top-level redirect back to the callback
+    path: '/api/integrations/zoho',
+    maxAge: OAUTH_STATE_MAX_AGE,
+  })
+  return res
 }

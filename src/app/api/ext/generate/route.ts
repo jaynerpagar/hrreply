@@ -5,6 +5,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { buildPrompt } from '@/lib/prompts'
 import { FREE_REPLY_LIMIT } from '@/lib/utils'
 import { sendLowReplyWarning } from '@/lib/email'
+import { enforceAiRateLimit } from '@/lib/rate-limit'
 import { Tone, ReplyType, MessageFormat, Language } from '@/types'
 
 const FREE_REPLY_WARNING = 20
@@ -38,6 +39,9 @@ export async function POST(request: NextRequest) {
   if (authError || !user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: CORS_HEADERS })
   }
+
+  const limited = await enforceAiRateLimit(user.id, CORS_HEADERS)
+  if (limited) return limited
 
   // Use service role for DB operations (manually scoped to user.id)
   const db = createClient(

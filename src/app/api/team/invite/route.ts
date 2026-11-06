@@ -13,7 +13,12 @@ export async function POST(req: Request) {
   if (!ctx.isAdmin) return NextResponse.json({ error: 'Only admins can invite members' }, { status: 403 })
 
   const { email, role = 'member' } = await req.json()
-  if (!email?.trim()) return NextResponse.json({ error: 'Email required' }, { status: 400 })
+  if (typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    return NextResponse.json({ error: 'Valid email required' }, { status: 400 })
+  }
+  if (role !== 'admin' && role !== 'member') {
+    return NextResponse.json({ error: 'Invalid role' }, { status: 400 })
+  }
 
   // Check if already a member
   const { data: existing } = await supabase

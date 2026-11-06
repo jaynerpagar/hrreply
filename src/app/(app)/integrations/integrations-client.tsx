@@ -93,6 +93,12 @@ function ZohoCard({ integration: initial }: { integration: ZohoIntegration | nul
           Authorization was denied. Please try again.
         </div>
       )}
+      {linkError === 'zoho_state' && (
+        <div className="mt-4 flex items-center gap-2 p-3 rounded-lg bg-red-50 text-red-700 text-sm">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          The connection request expired or didn&apos;t start from this browser. Please click Connect again.
+        </div>
+      )}
       {linkError === 'zoho_token' && (
         <div className="mt-4 flex items-center gap-2 p-3 rounded-lg bg-red-50 text-red-700 text-sm">
           <AlertCircle className="w-4 h-4 shrink-0" />

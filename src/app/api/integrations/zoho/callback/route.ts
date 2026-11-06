@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { verifyOAuthState, ZOHO_STATE_COOKIE } from '@/lib/oauth-state'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.hrreply.in'
+
+// Every exit clears the one-time state cookie.
+function redirect(path: string) {
+  const res = NextResponse.redirect(`${APP_URL}${path}`)
+  res.cookies.set(ZOHO_STATE_COOKIE, '', { path: '/api/integrations/zoho', maxAge: 0 })
+  return res
+}
 
 export async function GET(request: NextRequest) {
   const supabase = await createClient()
@@ -10,9 +18,16 @@ export async function GET(request: NextRequest) {
 
   const code  = request.nextUrl.searchParams.get('code')
   const error = request.nextUrl.searchParams.get('error')
+  const state = request.nextUrl.searchParams.get('state')
+
+  // CSRF: the code must come back with the state this browser was given,
+  // for this user. Rejects attacker-crafted callback links.
+  if (!verifyOAuthState(state, request.cookies.get(ZOHO_STATE_COOKIE)?.value, user.id)) {
+    return redirect('/integrations?error=zoho_state')
+  }
 
   if (error || !code) {
-    return NextResponse.redirect(`${APP_URL}/integrations?error=zoho_denied`)
+    return redirect('/integrations?error=zoho_denied')
   }
 
   const tokenRes = await fetch('https://accounts.zoho.in/oauth/v2/token', {
@@ -29,7 +44,7 @@ export async function GET(request: NextRequest) {
 
   const tokens = await tokenRes.json()
   if (!tokenRes.ok || tokens.error) {
-    return NextResponse.redirect(`${APP_URL}/integrations?error=zoho_token`)
+    return redirect('/integrations?error=zoho_token')
   }
 
   const expiresAt = new Date(Date.now() + (tokens.expires_in ?? 3600) * 1000).toISOString()
@@ -55,5 +70,5 @@ export async function GET(request: NextRequest) {
     updated_at:     new Date().toISOString(),
   }, { onConflict: 'user_id' })
 
-  return NextResponse.redirect(`${APP_URL}/integrations?success=zoho`)
+  return redirect('/integrations?success=zoho')
 }

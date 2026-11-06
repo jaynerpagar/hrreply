@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
+import { enforceAiRateLimit } from '@/lib/rate-limit'
+
+const MAX_MESSAGES = 40
+const MAX_MESSAGE_CHARS = 8000
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -28,9 +32,23 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  const limited = await enforceAiRateLimit(user.id)
+  if (limited) return limited
+
   const { messages } = await request.json()
   if (!Array.isArray(messages) || messages.length === 0) {
     return NextResponse.json({ error: 'messages array required' }, { status: 400 })
+  }
+  // Bound conversation size and only allow user/assistant turns with string content.
+  if (
+    messages.length > MAX_MESSAGES ||
+    !messages.every((m: unknown) => {
+      const msg = m as { role?: unknown; content?: unknown }
+      return (msg.role === 'user' || msg.role === 'assistant') &&
+        typeof msg.content === 'string' && msg.content.length > 0 && msg.content.length <= MAX_MESSAGE_CHARS
+    })
+  ) {
+    return NextResponse.json({ error: 'Invalid messages' }, { status: 400 })
   }
 
   try {
