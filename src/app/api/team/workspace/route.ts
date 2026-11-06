@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { getWorkspaceContext } from '@/lib/team'
 
 // GET — return my workspace + role (null if not in one)
@@ -47,8 +48,12 @@ export async function POST(req: Request) {
   const { name } = await req.json()
   if (!name?.trim()) return NextResponse.json({ error: 'Workspace name required' }, { status: 400 })
 
+  // Workspace + admin membership are written with the service role, after the
+  // team-plan check above; users cannot insert memberships under RLS.
+  const admin = createAdminClient()
+
   // Create workspace
-  const { data: workspace, error: wsErr } = await supabase
+  const { data: workspace, error: wsErr } = await admin
     .from('workspaces')
     .insert({ name: name.trim(), owner_id: user.id })
     .select('id, name, owner_id')
@@ -59,7 +64,7 @@ export async function POST(req: Request) {
   }
 
   // Add creator as admin
-  const { error: memberErr } = await supabase
+  const { error: memberErr } = await admin
     .from('workspace_members')
     .insert({
       workspace_id: workspace.id,

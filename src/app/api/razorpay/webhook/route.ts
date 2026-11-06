@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
-import { createClient } from '@supabase/supabase-js'
+import { createAdminClient } from '@/lib/supabase/admin'
 
-// Bypass RLS — webhook has no user session
-function adminClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+function isValidSignature(rawBody: string, signature: string, secret: string) {
+  const expected = Buffer.from(
+    crypto.createHmac('sha256', secret).update(rawBody).digest('hex'),
+    'utf8',
   )
+  const received = Buffer.from(signature, 'utf8')
+  return expected.length === received.length && crypto.timingSafeEqual(expected, received)
 }
 
 interface SubEntity {
@@ -25,27 +26,39 @@ interface WebhookEvent {
 export async function POST(request: NextRequest) {
   const rawBody = await request.text()
   const signature = request.headers.get('x-razorpay-signature') ?? ''
-  const secret = process.env.RAZORPAY_WEBHOOK_SECRET ?? ''
+  const secret = process.env.RAZORPAY_WEBHOOK_SECRET
 
-  const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex')
-  if (expected !== signature) {
+  // Fail closed: with no secret configured, an HMAC keyed with '' is trivially
+  // forgeable and anyone could POST a fake subscription.activated.
+  if (!secret) {
+    console.error('[webhook] RAZORPAY_WEBHOOK_SECRET is not set — rejecting webhook')
+    return NextResponse.json({ error: 'Webhook not configured' }, { status: 500 })
+  }
+  if (!signature || !isValidSignature(rawBody, signature, secret)) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
   }
 
-  const event = JSON.parse(rawBody) as WebhookEvent
-  const sub = event.payload.subscription?.entity
-  if (!sub) return NextResponse.json({ status: 'ok' })
+  let event: WebhookEvent
+  try {
+    event = JSON.parse(rawBody) as WebhookEvent
+  } catch {
+    return NextResponse.json({ error: 'Invalid payload' }, { status: 400 })
+  }
+  const sub = event.payload?.subscription?.entity
+  if (!sub?.id) return NextResponse.json({ status: 'ok' })
 
-  const supabase = adminClient()
-  const periodEnd = new Date(sub.current_end * 1000).toISOString()
+  const supabase = createAdminClient()
+  const periodEnd = Number.isFinite(sub.current_end)
+    ? new Date(sub.current_end * 1000).toISOString()
+    : null
 
   try {
     switch (event.event) {
       case 'subscription.activated': {
         const userId = sub.notes?.user_id
-        const plan = sub.notes?.plan as 'pro' | 'team' | undefined
+        const plan = sub.notes?.plan
         const seats = parseInt(sub.notes?.seats ?? '1', 10)
-        if (!userId || !plan) break
+        if (!userId || (plan !== 'pro' && plan !== 'team')) break
 
         // Idempotency: skip if already recorded
         const { data: existing } = await supabase
@@ -55,20 +68,23 @@ export async function POST(request: NextRequest) {
           .maybeSingle()
 
         if (!existing) {
-          await supabase.from('subscriptions').insert({
+          const { error: insertErr } = await supabase.from('subscriptions').insert({
             user_id: userId,
             razorpay_sub_id: sub.id,
             plan,
             status: 'active',
-            seats,
+            seats: Number.isFinite(seats) && seats > 0 ? seats : 1,
             current_period_end: periodEnd,
           })
-          await supabase.from('users').update({ plan }).eq('id', userId)
+          if (insertErr) throw insertErr
+          const { error: planErr } = await supabase.from('users').update({ plan }).eq('id', userId)
+          if (planErr) throw planErr
         }
         break
       }
 
       case 'subscription.charged': {
+        if (!periodEnd) break
         await supabase
           .from('subscriptions')
           .update({ current_period_end: periodEnd })
@@ -107,6 +123,8 @@ export async function POST(request: NextRequest) {
     }
   } catch (err) {
     console.error('[webhook]', event.event, err)
+    // Non-2xx makes Razorpay retry instead of silently dropping a paid activation.
+    return NextResponse.json({ error: 'Processing failed' }, { status: 500 })
   }
 
   return NextResponse.json({ status: 'ok' })

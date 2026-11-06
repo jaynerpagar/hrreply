@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { FREE_REPLY_LIMIT } from '@/lib/utils'
+import { enforceAiRateLimit } from '@/lib/rate-limit'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -68,6 +70,9 @@ export async function POST(req: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  const limited = await enforceAiRateLimit(user.id)
+  if (limited) return limited
+
   const { text, channel = 'email' } = await req.json()
   if (!text?.trim()) return NextResponse.json({ error: 'text is required' }, { status: 400 })
 
@@ -83,7 +88,7 @@ export async function POST(req: Request) {
     const resetAt = new Date(profile.replies_reset_at)
     const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000
     if (Date.now() - resetAt.getTime() >= thirtyDaysMs) {
-      await supabase.from('users')
+      await createAdminClient().from('users')
         .update({ replies_used: 0, replies_reset_at: new Date().toISOString() })
         .eq('id', user.id)
       repliesUsed = 0
@@ -117,7 +122,7 @@ export async function POST(req: Request) {
 
   // Increment quota for free users
   if (profile?.plan === 'free') {
-    await supabase.from('users')
+    await createAdminClient().from('users')
       .update({ replies_used: repliesUsed + 1 })
       .eq('id', user.id)
   }

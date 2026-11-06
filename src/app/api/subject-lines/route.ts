@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { buildSubjectLinesPrompt } from '@/lib/prompts'
 import { ReplyType } from '@/types'
+import { enforceAiRateLimit } from '@/lib/rate-limit'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -10,6 +11,9 @@ export async function POST(request: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const limited = await enforceAiRateLimit(user.id)
+  if (limited) return limited
 
   const { context_input, reply_type } = await request.json() as {
     context_input: string

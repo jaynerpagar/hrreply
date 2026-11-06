@@ -5,6 +5,8 @@ import { buildPrompt } from '@/lib/prompts'
 import { FREE_REPLY_LIMIT } from '@/lib/utils'
 import { sendLowReplyWarning } from '@/lib/email'
 import { Tone, ReplyType, Language, MessageFormat } from '@/types'
+import { enforceAiRateLimit } from '@/lib/rate-limit'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 const FREE_REPLY_WARNING = 20 // send warning email when user hits this count
 
@@ -20,6 +22,9 @@ export async function POST(request: NextRequest) {
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  const limited = await enforceAiRateLimit(user.id)
+  if (limited) return limited
 
   const { reply_type, tone, context_input, candidate_id, format, language } = await request.json() as {
     reply_type: ReplyType
@@ -47,7 +52,7 @@ export async function POST(request: NextRequest) {
     const resetAt = new Date(profile.replies_reset_at)
     const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000
     if (Date.now() - resetAt.getTime() >= thirtyDaysMs) {
-      await supabase
+      await createAdminClient()
         .from('users')
         .update({ replies_used: 0, replies_reset_at: new Date().toISOString() })
         .eq('id', user.id)
@@ -89,7 +94,7 @@ export async function POST(request: NextRequest) {
 
   // Increment usage counter
   const newCount = repliesUsed + 1
-  await supabase
+  await createAdminClient()
     .from('users')
     .update({ replies_used: newCount })
     .eq('id', user.id)

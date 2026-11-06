@@ -3,6 +3,8 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { FREE_REPLY_LIMIT } from '@/lib/utils'
 import { sendLowReplyWarning } from '@/lib/email'
+import { enforceAiRateLimit } from '@/lib/rate-limit'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 const FREE_REPLY_WARNING = 20
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -143,6 +145,9 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  const limited = await enforceAiRateLimit(user.id)
+  if (limited) return limited
+
   const { type, format = 'whatsapp', tone = 'friendly', ...inputs } = await request.json() as {
     type: AutomationType; format: string; tone: string; [key: string]: string
   }
@@ -160,7 +165,7 @@ export async function POST(request: Request) {
   if (profile?.plan === 'free' && profile?.replies_reset_at) {
     const resetAt = new Date(profile.replies_reset_at)
     if (Date.now() - resetAt.getTime() >= 30 * 24 * 60 * 60 * 1000) {
-      await supabase.from('users').update({ replies_used: 0, replies_reset_at: new Date().toISOString() }).eq('id', user.id)
+      await createAdminClient().from('users').update({ replies_used: 0, replies_reset_at: new Date().toISOString() }).eq('id', user.id)
       repliesUsed = 0
     }
   }
@@ -191,7 +196,7 @@ export async function POST(request: Request) {
 
     // Increment quota
     const newCount = repliesUsed + 1
-    await supabase.from('users').update({ replies_used: newCount }).eq('id', user.id)
+    await createAdminClient().from('users').update({ replies_used: newCount }).eq('id', user.id)
     if (profile?.plan === 'free' && newCount === FREE_REPLY_WARNING && user.email) {
       sendLowReplyWarning(user.email, profile?.full_name ?? '', newCount, FREE_REPLY_LIMIT)
         .catch(err => console.error('[automation] warning email failed:', err))

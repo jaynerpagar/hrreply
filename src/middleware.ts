@@ -1,7 +1,9 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-const BYPASS_SECRET = 'hrreply_admin'
+// Set MAINTENANCE_BYPASS_SECRET in the environment to allow ?bypass=<secret>.
+// With it unset, maintenance mode has no bypass.
+const BYPASS_SECRET = process.env.MAINTENANCE_BYPASS_SECRET ?? ''
 const BYPASS_COOKIE = 'maintenance_bypass'
 
 export async function middleware(request: NextRequest) {
@@ -11,16 +13,17 @@ export async function middleware(request: NextRequest) {
   if (process.env.MAINTENANCE_MODE === 'true') {
     const isMaintenancePage = pathname === '/maintenance'
     const isAsset = pathname.startsWith('/_next/') || pathname.startsWith('/api/')
-    const hasBypassCookie = request.cookies.get(BYPASS_COOKIE)?.value === BYPASS_SECRET
+    const hasBypassCookie = !!BYPASS_SECRET && request.cookies.get(BYPASS_COOKIE)?.value === BYPASS_SECRET
     const bypassParam = searchParams.get('bypass')
 
     // Grant bypass via query param and set cookie
-    if (bypassParam === BYPASS_SECRET) {
+    if (BYPASS_SECRET && bypassParam === BYPASS_SECRET) {
       const url = request.nextUrl.clone()
       url.searchParams.delete('bypass')
       const res = NextResponse.redirect(url)
       res.cookies.set(BYPASS_COOKIE, BYPASS_SECRET, {
         httpOnly: true,
+        secure: true,
         sameSite: 'lax',
         maxAge: 60 * 60 * 8, // 8 hours
         path: '/',
