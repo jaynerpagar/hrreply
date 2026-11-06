@@ -13,7 +13,8 @@ export async function GET(request: NextRequest) {
 
   if (errorParam) {
     console.error('[auth/callback] provider error:', errorParam, errorDescription)
-    return NextResponse.redirect(`${origin}/login?error=${errorParam}`)
+    // Provider-supplied value: encode it so it can't inject extra query params.
+    return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(errorParam)}`)
   }
 
   const response = NextResponse.redirect(`${origin}/dashboard`)
